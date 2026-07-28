@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Faisalabad Textile Depot Admin — Homepage Slider</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #f6f1e7;
+    --card: #ffffff;
+    --ink: #141414;
+    --muted: #746f66;
+    --border: #e7e0d3;
+    --red: #b3121c;
+    --red-dark: #8c0e16;
+    --red-tint: rgba(179, 18, 28, 0.08);
+    --green: #1e7e34;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-header {
+    background: var(--ink);
+    color: #fff;
+    padding: calc(14px + var(--safe-t)) 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-header .back-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: none; color: #fff; font-size: 1.05rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; cursor: pointer; text-decoration: none;
+}
+
+.admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 800; flex: 1; }
+
+.admin-content {
+    flex: 1;
+    padding: 16px 20px calc(90px + var(--safe-b));
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+.intro { margin-bottom: 14px; }
+.intro p { font-size: 0.82rem; color: var(--muted); line-height: 1.5; }
+
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+
+.add-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--red); color: #fff; border: none; border-radius: 9px;
+    padding: 10px 18px; font-size: 0.82rem; font-weight: 700; font-family: inherit;
+    cursor: pointer; box-shadow: 0 3px 10px rgba(179,18,28,0.25);
+}
+.add-btn:active { background: var(--red-dark); }
+
+.slide-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+@media (max-width: 760px) { .slide-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .slide-grid { grid-template-columns: 1fr; } }
+
+.slide-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 1px 3px rgba(20,20,20,0.05), 0 8px 20px rgba(20,20,20,0.04);
+}
+
+.slide-image-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: #efe9db;
+    position: relative;
+    overflow: hidden;
+}
+.slide-image-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.order-badge {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(20,20,20,0.75); color: #fff;
+    font-size: 0.65rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 999px;
+}
+
+.status-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+}
+.status-badge.inactive { background: #fbe6e6; color: var(--red); }
+.status-badge.active { background: #e6f4ea; color: var(--green); }
+
+.slide-body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+.slide-caption { font-size: 0.82rem; font-weight: 600; min-height: 1.2em; }
+.slide-caption.empty { color: var(--muted); font-style: italic; font-weight: 400; }
+
+.slide-actions { display: flex; gap: 6px; }
+.slide-actions .icon-btn {
+    flex: 1; height: 30px; border-radius: 7px; border: 1px solid var(--border);
+    background: #faf7f0; color: var(--ink); font-size: 0.74rem; font-weight: 600;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.slide-actions .icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+.state-msg { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 40px 20px; grid-column: 1 / -1; }
+
+/* Bottom sheet (add / edit form) */
+.sheet-overlay {
+    position: fixed; inset: 0; background: rgba(20,20,20,0.5);
+    display: none; align-items: flex-end; justify-content: center; z-index: 100;
+}
+.sheet-overlay.open { display: flex; }
+
+.sheet {
+    background: var(--card); width: 100%; max-width: 560px; max-height: 92dvh;
+    overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px 18px calc(24px + var(--safe-b));
+}
+.sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
+.sheet h2 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 16px; }
+
+.form-group { margin-bottom: 13px; }
+.form-group label {
+    display: block; font-size: 0.75rem; font-weight: 700; color: var(--muted);
+    margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.3px;
+}
+.form-group input, .form-group select {
+    width: 100%; background: #faf7f0; border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 11px; font-size: 0.87rem; font-family: inherit; color: var(--ink);
+}
+
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+.image-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.image-picker .thumb { width: 60px; height: 60px; border-radius: 9px; object-fit: cover; border: 1px solid var(--border); }
+.image-picker .thumb-wrap { position: relative; }
+.image-picker .remove-thumb {
+    position: absolute; top: -6px; right: -6px; width: 19px; height: 19px; border-radius: 50%;
+    background: var(--red); color: #fff; border: 2px solid #fff; font-size: 0.62rem;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+.image-picker .add-thumb {
+    width: 60px; height: 60px; border-radius: 9px; border: 1.5px dashed var(--border); background: #faf7f0;
+    color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer;
+}
+.hint { font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+
+.sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
+.btn { flex: 1; padding: 12px; border-radius: 9px; border: none; font-size: 0.87rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+.btn.primary { background: var(--red); color: #fff; }
+.btn.primary:active { background: var(--red-dark); }
+.btn.secondary { background: #faf7f0; color: var(--ink); border: 1px solid var(--border); }
+
+.toast {
+    position: fixed; left: 50%; bottom: calc(24px + var(--safe-b)); transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 0.82rem;
+    opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 200; pointer-events: none; max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <a href="/admin/dashboard" class="back-btn">&#8592;</a>
+        <h1>Homepage Slider</h1>
+    </header>
+
+    <main class="admin-content">
+        <div class="intro">
+            <p>These images power the auto-sliding "About Us" carousel on the public homepage. You can set up the images according to the Order you like to be.</p>
+        </div>
+
+        <div class="toolbar">
+            <button type="button" class="add-btn" id="addBtn">+ Add Slide(s)</button>
+        </div>
+
+        <div class="slide-grid" id="grid"></div>
+    </main>
+
+    <!-- Add sheet: multiple images at once -->
+    <div class="sheet-overlay" id="addOverlay">
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h2>Add Slide(s)</h2>
+
+            <div class="form-group">
+                <label>Images</label>
+                <div class="image-picker" id="addImagePicker">
+                    <div class="add-thumb" id="addImageBtn">+</div>
+                </div>
+                <input type="file" id="addImageInput" accept="image/*" multiple style="display:none;" />
+                <p class="hint">Pick up to 6 photos. Each becomes its own slide, added in the order you select them.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Caption (optional, applied to all selected)</label>
+                <input type="text" id="addCaption" placeholder="e.g. Our Faisalabad workshop" />
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="addActive" checked style="width:auto;margin-right:6px;" />Active (show on homepage immediately)</label>
+            </div>
+
+            <div class="sheet-actions">
+                <button class="btn secondary" id="addCancelBtn">Cancel</button>
+                <button class="btn primary" id="addSaveBtn">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit sheet: single slide -->
+    <div class="sheet-overlay" id="editOverlay">
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h2>Edit Slide</h2>
+
+            <input type="hidden" id="editId" />
+
+            <div class="form-group">
+                <label>Current image</label>
+                <img id="editCurrentImg" src="" style="width:100%;border-radius:9px;border:1px solid var(--border);margin-bottom:8px;" />
+                <div id="editReplaceRow" class="image-picker">
+                    <div class="add-thumb" id="editImageBtn">+</div>
+                </div>
+                <input type="file" id="editImageInput" accept="image/*" style="display:none;" />
+                <p class="hint">Only add a new photo here if you want to replace the current one.</p>
+            </div>
+
+            <div class="form-group">
+                <label>Caption</label>
+                <input type="text" id="editCaption" placeholder="Optional" />
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Display order</label>
+                    <input type="number" id="editOrder" min="1" />
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="editActive">
+                        <option value="1">Active</option>
+                        <option value="0">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="sheet-actions">
+                <button class="btn secondary" id="editCancelBtn">Cancel</button>
+                <button class="btn primary" id="editSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function adminFetch(url, options = {}) {
+            const res = await fetch(url, { credentials: 'include', ...options });
+            let body;
+            try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+
+            if (res.status === 401 || res.status === 403) {
+                showToast(body.message || 'Session expired — please log in again');
+                setTimeout(() => (window.location.href = '/login'), 1200);
+                throw new Error(body.message || 'Unauthorized');
+            }
+            return body;
+        }
+
+        function openSheet(id) { document.getElementById(id).classList.add('open'); }
+        function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        const API = '/admin/api/slider';
+        let addFiles = [];
+        let editReplaceFile = null;
+
+        async function loadSlides() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<p class="state-msg">Loading…</p>';
+
+            const res = await adminFetch(API);
+            if (!res.success) return showToast(res.message);
+            renderGrid(res.data);
+        }
+
+        function renderGrid(slides) {
+            const grid = document.getElementById('grid');
+            if (!slides.length) {
+                grid.innerHTML = '<p class="state-msg">No slides yet. Tap "+ Add Slide(s)" to upload your first homepage image.</p>';
+                return;
+            }
+
+            grid.innerHTML = slides.map(s => `
+                <div class="slide-card">
+                    <div class="slide-image-wrap">
+                        <div class="order-badge">#${s.display_order}</div>
+                        <div class="status-badge ${s.is_active ? 'active' : 'inactive'}">${s.is_active ? 'Active' : 'Inactive'}</div>
+                        <img src="${escapeHtml(s.url)}" onerror="this.style.opacity=0.2" />
+                    </div>
+                    <div class="slide-body">
+                        <div class="slide-caption ${!s.caption ? 'empty' : ''}">${s.caption ? escapeHtml(s.caption) : 'No caption'}</div>
+                        <div class="slide-actions">
+                            <button class="icon-btn" onclick='openEdit(${JSON.stringify(s)})'>Edit</button>
+                            <button class="icon-btn danger" onclick="deleteSlide(${s.slider_id})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ----- Add sheet -----
+        function renderAddPicker() {
+            const picker = document.getElementById('addImagePicker');
+            const thumbs = addFiles.map((file, i) => `
+                <div class="thumb-wrap">
+                    <img class="thumb" src="${URL.createObjectURL(file)}" />
+                    <div class="remove-thumb" onclick="removeAddFile(${i})">×</div>
+                </div>
+            `).join('');
+            picker.innerHTML = thumbs + '<div class="add-thumb" id="addImageBtn">+</div>';
+            document.getElementById('addImageBtn').addEventListener('click', () => document.getElementById('addImageInput').click());
+        }
+
+        function removeAddFile(i) { addFiles.splice(i, 1); renderAddPicker(); }
+
+        document.getElementById('addImageInput').addEventListener('change', (e) => {
+            addFiles = addFiles.concat(Array.from(e.target.files)).slice(0, 6);
+            renderAddPicker();
+            e.target.value = '';
+        });
+
+        document.getElementById('addBtn').addEventListener('click', () => {
+            addFiles = [];
+            document.getElementById('addCaption').value = '';
+            document.getElementById('addActive').checked = true;
+            renderAddPicker();
+            openSheet('addOverlay');
+        });
+
+        document.getElementById('addCancelBtn').addEventListener('click', () => closeSheet('addOverlay'));
+
+        document.getElementById('addSaveBtn').addEventListener('click', async () => {
+            if (!addFiles.length) return showToast('Choose at least one image');
+
+            const formData = new FormData();
+            addFiles.forEach(f => formData.append('images', f));
+            formData.append('caption', document.getElementById('addCaption').value.trim());
+            formData.append('is_active', document.getElementById('addActive').checked ? '1' : '0');
+
+            const res = await adminFetch(API, { method: 'POST', body: formData });
+            showToast(res.message);
+            if (res.success) { closeSheet('addOverlay'); loadSlides(); }
+        });
+
+        // ----- Edit sheet -----
+        function openEdit(slide) {
+            editReplaceFile = null;
+            document.getElementById('editId').value = slide.slider_id;
+            document.getElementById('editCurrentImg').src = slide.url;
+            document.getElementById('editCaption').value = slide.caption || '';
+            document.getElementById('editOrder').value = slide.display_order;
+            document.getElementById('editActive').value = slide.is_active ? '1' : '0';
+            renderEditPicker();
+            openSheet('editOverlay');
+        }
+
+        function renderEditPicker() {
+            const row = document.getElementById('editReplaceRow');
+            const thumb = editReplaceFile ? `
+                <div class="thumb-wrap">
+                    <img class="thumb" src="${URL.createObjectURL(editReplaceFile)}" />
+                    <div class="remove-thumb" onclick="clearEditReplace()">×</div>
+                </div>
+            ` : '';
+            row.innerHTML = thumb + '<div class="add-thumb" id="editImageBtn">+</div>';
+            document.getElementById('editImageBtn').addEventListener('click', () => document.getElementById('editImageInput').click());
+        }
+
+        function clearEditReplace() { editReplaceFile = null; renderEditPicker(); }
+
+        document.getElementById('editImageInput').addEventListener('change', (e) => {
+            if (e.target.files[0]) editReplaceFile = e.target.files[0];
+            renderEditPicker();
+            e.target.value = '';
+        });
+
+        document.getElementById('editCancelBtn').addEventListener('click', () => closeSheet('editOverlay'));
+
+        document.getElementById('editSaveBtn').addEventListener('click', async () => {
+            const id = document.getElementById('editId').value;
+            const formData = new FormData();
+            formData.append('caption', document.getElementById('editCaption').value.trim());
+            formData.append('display_order', document.getElementById('editOrder').value || 1);
+            formData.append('is_active', document.getElementById('editActive').value);
+            if (editReplaceFile) formData.append('images', editReplaceFile);
+
+            const res = await adminFetch(`${API}/${id}`, { method: 'PUT', body: formData });
+            showToast(res.message);
+            if (res.success) { closeSheet('editOverlay'); loadSlides(); }
+        });
+
+        async function deleteSlide(id) {
+            if (!confirm('Delete this slide? This cannot be undone.')) return;
+            const res = await adminFetch(`${API}/${id}`, { method: 'DELETE' });
+            showToast(res.message);
+            if (res.success) loadSlides();
+        }
+
+        loadSlides();
+    </script>
+</body>
+</html>

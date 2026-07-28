@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Faisalabad Textile Depot Admin — Orders</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #f6f1e7;
+    --card: #ffffff;
+    --ink: #141414;
+    --muted: #746f66;
+    --border: #e7e0d3;
+    --red: #b3121c;
+    --red-dark: #8c0e16;
+    --red-tint: rgba(179, 18, 28, 0.08);
+    --green: #1e7e34;
+    --amber: #b9791a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--ink); min-height: 100dvh;
+    display: flex; flex-direction: column;
+}
+.mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+.admin-header {
+    background: var(--ink); color: #fff;
+    padding: calc(14px + var(--safe-t)) 16px 14px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 20;
+}
+.admin-header .back-btn {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(255,255,255,0.08); border: none; color: #fff;
+    font-size: 1.05rem; display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; cursor: pointer; text-decoration: none;
+}
+.admin-header h1 { font-family: 'Playfair Display', serif; font-size: 1rem; font-weight: 800; flex: 1; }
+
+.admin-content { flex: 1; padding: 16px 20px calc(90px + var(--safe-b)); max-width: 900px; width: 100%; margin: 0 auto; }
+
+.filter-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.filter-row input[type="text"] {
+    flex: 1; min-width: 160px; background: var(--card); border: 1px solid var(--border);
+    border-radius: 9px; padding: 8px 11px; font-size: 0.82rem; color: var(--ink); font-family: inherit;
+}
+.filter-row input:focus { outline: 2px solid var(--red); outline-offset: -1px; }
+
+.status-tabs {
+    display: flex; gap: 4px; background: var(--card); padding: 4px; border-radius: 10px;
+    border: 1px solid var(--border); margin-bottom: 14px; overflow-x: auto;
+}
+.status-tab {
+    padding: 7px 13px; border-radius: 7px; border: none; background: transparent;
+    font-size: 0.76rem; font-weight: 700; font-family: inherit; color: var(--muted);
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+}
+.status-tab.active { background: var(--red); color: #fff; }
+
+.state-msg { text-align: center; color: var(--muted); font-size: 0.85rem; padding: 40px 20px; }
+
+/* ===== Order card ===== */
+.order-list { display: flex; flex-direction: column; gap: 12px; }
+
+.order-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 16px; box-shadow: 0 1px 3px rgba(20,20,20,0.05), 0 8px 20px rgba(20,20,20,0.04);
+    transition: box-shadow 0.2s;
+}
+.order-card.just-updated { box-shadow: 0 0 0 2px var(--red-tint), 0 8px 20px rgba(20,20,20,0.04); }
+
+.order-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.order-id { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 0.95rem; }
+.order-meta { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.order-total { font-weight: 800; color: var(--red); font-size: 0.95rem; text-align: right; }
+.order-total .sub { font-size: 0.68rem; color: var(--muted); font-weight: 500; }
+
+.status-pill {
+    display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px;
+}
+.status-pill.PENDING { background: #fbeed6; color: var(--amber); }
+.status-pill.CONFIRMED, .status-pill.PACKED { background: #dde8f5; color: #2b5ea6; }
+.status-pill.SHIPPED, .status-pill.DELIVERED { background: #e2ecdf; color: var(--green); }
+.status-pill.COMPLETED { background: #1e7e34; color: #fff; }
+.status-pill.CANCELLED { background: #fbe6e6; color: var(--red); }
+
+/* ----- stepper ----- */
+.stepper { display: flex; margin-bottom: 12px; }
+.step { flex: 1; text-align: center; position: relative; }
+.step:not(:first-child)::before {
+    content: ''; position: absolute; top: 5px; left: -50%; width: 100%; height: 2px;
+    background: var(--border); z-index: 0;
+}
+.step.done:not(:first-child)::before { background: var(--red); }
+.step-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--border); margin: 0 auto 4px; position: relative; z-index: 1; }
+.step.done .step-dot { background: var(--red); }
+.step.current .step-dot { box-shadow: 0 0 0 3px var(--red-tint); }
+.step-label { font-size: 0.56rem; font-weight: 700; text-transform: uppercase; color: var(--muted); letter-spacing: 0.2px; }
+.step.done .step-label { color: var(--red); }
+.stepper.cancelled { display: none; }
+
+.order-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.order-actions button, .order-actions .terminal-tag {
+    flex: 1; min-width: 120px; height: 34px; border-radius: 8px; border: none;
+    font-size: 0.76rem; font-weight: 700; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+}
+.btn-advance { background: var(--red); color: #fff; }
+.btn-advance:active { background: var(--red-dark); }
+.btn-advance:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+.btn-cancel { background: #faf7f0; border: 1px solid var(--border) !important; color: var(--red); }
+.btn-view { background: #faf7f0; border: 1px solid var(--border) !important; color: var(--ink); }
+.terminal-tag { background: none; color: var(--muted); font-style: italic; }
+
+.advance-hint { font-size: 0.68rem; color: var(--amber); margin-bottom: 10px; font-style: italic; }
+
+.payment-row {
+    display: flex; align-items: center; gap: 10px; padding-top: 10px; border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.pay-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); cursor: zoom-in; flex-shrink: 0; }
+.no-screenshot { font-size: 0.72rem; color: var(--muted); font-style: italic; }
+.pay-badge {
+    font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px;
+    padding: 3px 9px; border-radius: 999px; flex-shrink: 0;
+}
+.pay-badge.PENDING { background: #fbeed6; color: var(--amber); }
+.pay-badge.VERIFIED { background: #e2ecdf; color: var(--green); }
+.pay-badge.REJECTED { background: #fbe6e6; color: var(--red); }
+.pay-actions { display: flex; gap: 6px; margin-left: auto; }
+.pay-actions button {
+    height: 30px; padding: 0 12px; border-radius: 7px; border: none; font-size: 0.72rem;
+    font-weight: 700; font-family: inherit; cursor: pointer;
+}
+.btn-verify { background: var(--green); color: #fff; }
+.btn-reject { background: var(--red); color: #fff; }
+
+/* ===== Detail sheet ===== */
+.sheet-overlay { position: fixed; inset: 0; background: rgba(20,20,20,0.5); display: none; align-items: flex-end; justify-content: center; z-index: 100; }
+.sheet-overlay.open { display: flex; }
+.sheet { background: var(--card); width: 100%; max-width: 640px; max-height: 88dvh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px 18px calc(24px + var(--safe-b)); }
+.sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
+.sheet h2 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 14px; }
+.detail-section { margin-bottom: 16px; }
+.detail-section h3 { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 8px; }
+.addr-block { font-size: 0.84rem; line-height: 1.6; }
+
+.item-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.item-row:last-child { border-bottom: none; }
+.item-thumb {
+    width: 42px; height: 42px; border-radius: 8px; object-fit: cover;
+    border: 1px solid var(--border); flex-shrink: 0; background: var(--bg); cursor: zoom-in;
+}
+.item-thumb-placeholder {
+    width: 42px; height: 42px; border-radius: 8px; border: 1px dashed var(--border);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: var(--muted); background: var(--bg); text-align: center;
+}
+.item-info { flex: 1; min-width: 0; }
+.item-info .name { font-size: 0.83rem; font-weight: 600; }
+.item-info .category { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; margin-top: 1px; }
+.item-qty { color: var(--muted); font-size: 0.78rem; flex-shrink: 0; }
+.item-price { font-size: 0.83rem; font-weight: 700; flex-shrink: 0; min-width: 70px; text-align: right; }
+
+.price-total-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; }
+.price-total-row.grand { font-weight: 800; color: var(--red); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 8px; }
+.btn { width: 100%; padding: 12px; border-radius: 9px; border: none; font-size: 0.87rem; font-weight: 700; font-family: inherit; cursor: pointer; margin-top: 6px; }
+.btn.secondary { background: #faf7f0; color: var(--ink); border: 1px solid var(--border); }
+
+.lightbox-overlay { position: fixed; inset: 0; background: rgba(10,10,10,0.94); display: none; align-items: center; justify-content: center; z-index: 400; }
+.lightbox-overlay.open { display: flex; }
+.lightbox-overlay img { max-width: 92vw; max-height: 86vh; object-fit: contain; border-radius: 6px; }
+.lightbox-close { position: absolute; top: calc(16px + var(--safe-t)); right: 16px; width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.12); color: #fff; border: none; font-size: 1.3rem; cursor: pointer; }
+
+.toast {
+    position: fixed; left: 50%; bottom: calc(24px + var(--safe-b)); transform: translateX(-50%) translateY(20px);
+    background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 0.82rem;
+    opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 200; pointer-events: none; max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header class="admin-header">
+    <a href="/admin/dashboard" class="back-btn">&#8592;</a>
+    <h1>Orders</h1>
+</header>
+
+<main class="admin-content">
+    <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="Search order #, name, or phone…" />
+    </div>
+
+    <div class="status-tabs" id="statusTabs">
+        <button type="button" class="status-tab active" data-status="">All</button>
+        <button type="button" class="status-tab" data-status="PENDING">Pending</button>
+        <button type="button" class="status-tab" data-status="CONFIRMED">Confirmed</button>
+        <button type="button" class="status-tab" data-status="PACKED">Packed</button>
+        <button type="button" class="status-tab" data-status="SHIPPED">Shipped</button>
+        <button type="button" class="status-tab" data-status="DELIVERED">Delivered</button>
+        <button type="button" class="status-tab" data-status="COMPLETED">Completed</button>
+        <button type="button" class="status-tab" data-status="CANCELLED">Cancelled</button>
+    </div>
+
+    <div class="order-list" id="orderList"></div>
+</main>
+
+<!-- Detail sheet -->
+<div class="sheet-overlay" id="detailOverlay">
+    <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h2 id="detailTitle">Order</h2>
+        <div class="detail-section">
+            <h3>Shipping To</h3>
+            <div class="addr-block" id="detailAddress"></div>
+        </div>
+        <div class="detail-section">
+            <h3>Items</h3>
+            <div id="detailItems"></div>
+        </div>
+        <div class="detail-section">
+            <div class="price-total-row"><span>Subtotal</span><span id="detailSubtotal"></span></div>
+            <div class="price-total-row"><span>Shipping</span><span id="detailShipping"></span></div>
+            <div class="price-total-row grand"><span>Total</span><span id="detailTotal"></span></div>
+        </div>
+        <button class="btn secondary" id="detailCloseBtn">Close</button>
+    </div>
+</div>
+
+<div class="lightbox-overlay" id="lightboxOverlay">
+    <button class="lightbox-close" id="lightboxClose">&times;</button>
+    <img id="lightboxImg" src="" alt="Payment screenshot" />
+</div>
+
+<script>
+const API = '/admin/api/orders';
+const STATUS_FLOW = ['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED', 'COMPLETED'];
+
+let currentStatus = '';
+// In-memory cache of the orders currently on screen, keyed by order_id.
+// Actions patch this object and re-render only the affected card instead
+// of re-fetching + re-rendering the whole list.
+let ordersById = new Map();
+
+function showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+async function adminFetch(url, options = {}) {
+    const res = await fetch(url, { credentials: 'include', ...options });
+    let body;
+    try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+    if (res.status === 401 || res.status === 403) {
+        showToast(body.message || 'Session expired — please log in again');
+        setTimeout(() => (window.location.href = '/login'), 1200);
+        throw new Error(body.message || 'Unauthorized');
+    }
+    return body;
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function debounce(fn, delay = 350) {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+}
+
+function money(n) { return 'Rs. ' + Number(n || 0).toLocaleString(); }
+
+document.querySelectorAll('.status-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.status-tab').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatus = btn.dataset.status;
+        loadOrders();
+    });
+});
+document.getElementById('searchInput').addEventListener('input', debounce(loadOrders));
+
+// Full fetch + render — used only on initial load, tab switch, and search.
+// Individual card actions (advance/cancel/verify/reject) do NOT call this;
+// they patch the DOM directly so the whole list never flickers/reloads.
+async function loadOrders() {
+    const list = document.getElementById('orderList');
+    list.innerHTML = '<p class="state-msg">Loading…</p>';
+
+    const params = new URLSearchParams({
+        status: currentStatus,
+        search: document.getElementById('searchInput').value.trim(),
+        limit: 50,
+    });
+
+    const res = await adminFetch(`${API}?${params}`);
+    if (!res.success) { list.innerHTML = `<p class="state-msg">${escapeHtml(res.message || 'Could not load orders')}</p>`; return; }
+
+    const orders = res.data.orders || [];
+    ordersById = new Map(orders.map(o => [o.order_id, o]));
+
+    if (!orders.length) { list.innerHTML = '<p class="state-msg">No orders match.</p>'; return; }
+
+    list.innerHTML = orders.map(renderOrderCard).join('');
+}
+
+// Re-render a single card in place from the in-memory order object.
+function rerenderCard(orderId) {
+    const o = ordersById.get(orderId);
+    const el = document.getElementById(`order-${orderId}`);
+    if (!o || !el) return;
+    el.outerHTML = renderOrderCard(o);
+    const fresh = document.getElementById(`order-${orderId}`);
+    if (fresh) {
+        fresh.classList.add('just-updated');
+        setTimeout(() => fresh.classList.remove('just-updated'), 900);
+    }
+}
+
+// If the active status tab filters by a specific status and the order no
+// longer matches it (e.g. cancelled while viewing the "Pending" tab),
+// drop it from view instead of leaving a stale card on screen.
+function removeCardIfFiltered(orderId) {
+    const o = ordersById.get(orderId);
+    if (currentStatus && o && o.status !== currentStatus) {
+        ordersById.delete(orderId);
+        const el = document.getElementById(`order-${orderId}`);
+        if (el) el.remove();
+        if (!ordersById.size) {
+            document.getElementById('orderList').innerHTML = '<p class="state-msg">No orders match.</p>';
+        }
+        return true;
+    }
+    return false;
+}
+
+function renderOrderCard(o) {
+    const currentIdx = STATUS_FLOW.indexOf(o.status);
+    const isCancelled = o.status === 'CANCELLED';
+    const paymentVerified = o.payment_status === 'VERIFIED';
+
+    const stepperHtml = isCancelled ? '' : `
+        <div class="stepper">
+            ${STATUS_FLOW.map((s, i) => `
+                <div class="step ${i <= currentIdx ? 'done' : ''} ${i === currentIdx ? 'current' : ''}">
+                    <div class="step-dot"></div>
+                    <div class="step-label">${s}</div>
+                </div>
+            `).join('')}
+        </div>`;
+
+    let actionsHtml;
+    let hintHtml = '';
+    if (o.status === 'COMPLETED') {
+        actionsHtml = `<span class="terminal-tag">✓ Completed</span><button class="btn-view" onclick="viewOrder(${o.order_id})">View details</button>`;
+    } else if (isCancelled) {
+        actionsHtml = `<span class="terminal-tag">Cancelled</span><button class="btn-view" onclick="viewOrder(${o.order_id})">View details</button>`;
+    } else {
+        const advanceDisabled = !paymentVerified;
+        actionsHtml = `
+            <button class="btn-advance" ${advanceDisabled ? 'disabled' : ''} onclick="advanceOrder(${o.order_id})">Advance to ${o.next_status}</button>
+            <button class="btn-cancel" onclick="cancelOrder(${o.order_id})">Cancel</button>
+            <button class="btn-view" onclick="viewOrder(${o.order_id})">View details</button>`;
+        if (advanceDisabled) {
+            hintHtml = `<div class="advance-hint">Payment must be verified before this order can advance</div>`;
+        }
+    }
+
+    const payThumb = o.payment_screenshot_url
+        ? `<img class="pay-thumb" src="${escapeHtml(o.payment_screenshot_url)}" onclick="openLightbox('${escapeHtml(o.payment_screenshot_url)}')" />`
+        : '<span class="no-screenshot">No screenshot</span>';
+
+    const payStatus = o.payment_status || 'PENDING';
+    const payActions = (payStatus === 'PENDING' && o.has_payment_screenshot)
+        ? `<div class="pay-actions">
+             <button class="btn-verify" onclick="setPayment(${o.order_id}, 'VERIFY')">Verify</button>
+             <button class="btn-reject" onclick="setPayment(${o.order_id}, 'REJECT')">Reject</button>
+           </div>`
+        : '';
+
+    return `
+        <div class="order-card" id="order-${o.order_id}">
+            <div class="order-top">
+                <div>
+                    <div class="order-id">Order #${o.order_id}</div>
+                    <div class="order-meta">${escapeHtml(o.customer_name)} · ${escapeHtml(o.customer_phone || '')} · ${escapeHtml(o.city || '')}</div>
+                    <div class="order-meta">${new Date(o.created_at).toLocaleString()} · ${o.item_count} item${o.item_count === 1 ? '' : 's'}</div>
+                </div>
+                <div class="order-total">${money(o.total_price)}<div class="sub">total</div></div>
+            </div>
+            <span class="status-pill ${o.status}">${o.status}</span>
+            ${stepperHtml}
+            <div class="order-actions">${actionsHtml}</div>
+            ${hintHtml}
+            <div class="payment-row">
+                ${payThumb}
+                <span class="pay-badge ${payStatus}">${payStatus}</span>
+                ${payActions}
+            </div>
+        </div>
+    `;
+}
+
+async function advanceOrder(id) {
+    const res = await adminFetch(`${API}/${id}/advance`, { method: 'PATCH' });
+    showToast(res.message);
+    if (!res.success) return;
+
+    const o = ordersById.get(id);
+    if (o) {
+        o.status = res.data.status;
+        o.next_status = res.data.next_status;
+    }
+    if (!removeCardIfFiltered(id)) rerenderCard(id);
+}
+
+async function cancelOrder(id) {
+    if (!confirm('Cancel this order? This cannot be undone.')) return;
+    const res = await adminFetch(`${API}/${id}/cancel`, { method: 'PATCH' });
+    showToast(res.message);
+    if (!res.success) return;
+
+    const o = ordersById.get(id);
+    if (o) {
+        o.status = 'CANCELLED';
+        o.next_status = null;
+    }
+    if (!removeCardIfFiltered(id)) rerenderCard(id);
+}
+
+async function setPayment(id, action) {
+    const res = await adminFetch(`${API}/${id}/payment`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+    });
+    showToast(res.message);
+    if (!res.success) return;
+
+    const o = ordersById.get(id);
+    if (o) {
+        o.payment_status = res.data.payment_status;
+        // REJECT cascades into cancelling the order — the backend tells us
+        // the resulting order status so we can reflect it without a refetch.
+        if (res.data.order_status) {
+            o.status = res.data.order_status;
+            o.next_status = res.data.next_status ?? (res.data.order_status === 'CANCELLED' ? null : o.next_status);
+        }
+    }
+    if (!removeCardIfFiltered(id)) rerenderCard(id);
+}
+
+function renderDetailItem(i) {
+    const thumb = i.thumbnail_url
+        ? `<img class="item-thumb" src="${escapeHtml(i.thumbnail_url)}" alt="${escapeHtml(i.product_name)}" onclick="openLightbox('${escapeHtml(i.thumbnail_url)}')" />`
+        : `<div class="item-thumb-placeholder">No image</div>`;
+    return `
+        <div class="item-row">
+            ${thumb}
+            <div class="item-info">
+                <div class="name">${escapeHtml(i.product_name)}</div>
+                <div class="category">${escapeHtml(i.category_name || '')}</div>
+            </div>
+            <span class="item-qty">x${i.quantity}</span>
+            <span class="item-price">${money(i.total)}</span>
+        </div>
+    `;
+}
+
+async function viewOrder(id) {
+    const res = await adminFetch(`${API}/${id}`);
+    if (!res.success) return showToast(res.message);
+
+    const o = res.data;
+    document.getElementById('detailTitle').textContent = `Order #${o.order_id}`;
+    document.getElementById('detailAddress').innerHTML = `
+        ${escapeHtml(o.ship_name)}<br/>
+        ${escapeHtml(o.ship_phone || '')}<br/>
+        ${escapeHtml(o.address)}<br/>
+        ${escapeHtml(o.city)}, ${escapeHtml(o.province)} ${escapeHtml(o.postal_code)}
+    `;
+    document.getElementById('detailItems').innerHTML = o.items.map(renderDetailItem).join('');
+    document.getElementById('detailSubtotal').textContent = money(o.subtotal);
+    document.getElementById('detailShipping').textContent = money(o.shipping_price);
+    document.getElementById('detailTotal').textContent = money(o.total_price);
+
+    document.getElementById('detailOverlay').classList.add('open');
+}
+document.getElementById('detailCloseBtn').addEventListener('click', () => document.getElementById('detailOverlay').classList.remove('open'));
+
+function openLightbox(url) {
+    document.getElementById('lightboxImg').src = url;
+    document.getElementById('lightboxOverlay').classList.add('open');
+}
+document.getElementById('lightboxClose').addEventListener('click', () => document.getElementById('lightboxOverlay').classList.remove('open'));
+document.getElementById('lightboxOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'lightboxOverlay') document.getElementById('lightboxOverlay').classList.remove('open');
+});
+
+loadOrders();
+</script>
+</body>
+</html>

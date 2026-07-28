@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Faisalabad Textile Depot Admin — Products</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #f6f1e7;
+    --card: #ffffff;
+    --ink: #141414;
+    --muted: #746f66;
+    --border: #e7e0d3;
+    --red: #b3121c;
+    --red-dark: #8c0e16;
+    --red-tint: rgba(179, 18, 28, 0.08);
+    --green: #1e7e34;
+    --amber: #b9791a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== Header ===== */
+.admin-header {
+    background: var(--ink);
+    color: #fff;
+    padding: calc(14px + var(--safe-t)) 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-header .back-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: #fff;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 800;
+    flex: 1;
+}
+
+/* ===== Content shell ===== */
+.admin-content {
+    flex: 1;
+    padding: 16px 20px calc(90px + var(--safe-b));
+    max-width: 1240px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ===== Compact filter row: search + category select ===== */
+.filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-row input[type="text"] {
+    flex: 1;
+    min-width: 160px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 0.82rem;
+    color: var(--ink);
+    font-family: inherit;
+}
+
+.filter-row select {
+    width: 170px;
+    flex-shrink: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 0.82rem;
+    color: var(--ink);
+    font-family: inherit;
+}
+
+.filter-row input:focus,
+.filter-row select:focus { outline: 2px solid var(--red); outline-offset: -1px; }
+
+@media (max-width: 480px) {
+    .filter-row select { width: 100%; }
+}
+
+/* Row holding gender tabs on the left, Add Product button on the right */
+.tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.gender-tabs {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--card);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    margin-bottom: 0;
+}
+
+.add-product-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(179,18,28,0.25);
+}
+
+.add-product-btn:active { background: var(--red-dark); }
+
+@media (max-width: 480px) {
+    .add-product-btn { width: 100%; justify-content: center; }
+}
+
+.gender-tab {
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.gender-tab.active {
+    background: var(--red);
+    color: #fff;
+}
+
+/* ===== Product grid: max 5 cols desktop, centered, comfortable margins ===== */
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    align-items: stretch;
+}
+
+@media (max-width: 1000px) { .product-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 760px)  { .product-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px)  { .product-grid { grid-template-columns: 1fr; } }
+
+/* Card is now a single cohesive unit: rounded corners, soft shadow,
+   thin border — image and details flow together instead of the old
+   "two separate boxes" look. Lifts gently on hover for a bit of polish. */
+.product-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(20,20,20,0.05), 0 8px 20px rgba(20,20,20,0.04);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(20,20,20,0.07), 0 14px 28px rgba(20,20,20,0.09);
+    border-color: rgba(179,18,28,0.25);
+}
+
+/* Image — shorter/more compact than before (was 4/5 portrait, now
+   closer to square) so the card reads less "tall and empty" */
+.card-image-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #efe9db;
+    overflow: hidden;
+    touch-action: pan-y;
+    cursor: zoom-in;
+}
+
+.card-image-wrap img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    transition: transform 0.35s ease;
+}
+
+.card-image-wrap img.active { display: block; }
+
+.product-card:hover .card-image-wrap img.active { transform: scale(1.045); }
+
+.card-image-placeholder {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(20,20,20,0.55);
+    color: #fff;
+    border: none;
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.carousel-nav.prev { left: 6px; }
+.carousel-nav.next { right: 6px; }
+
+.carousel-dots {
+    position: absolute;
+    bottom: 6px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    z-index: 2;
+}
+
+.carousel-dots .dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.55);
+}
+
+.carousel-dots .dot.active { background: #fff; }
+
+/* Discount ribbon — diagonal corner-ribbon style, only rendered when
+   has_discount is true. Same red as the rest of the theme, just a more
+   eye-catching shape/treatment (like real storefront "SALE" ribbons). */
+.discount-ribbon {
+    position: absolute;
+    top: 14px;
+    left: -38px;
+    width: 140px;
+    padding: 5px 0 4px;
+    background: linear-gradient(135deg, var(--red), var(--red-dark));
+    color: #fff;
+    text-align: center;
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    transform: rotate(-45deg);
+    transform-origin: center;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+    z-index: 3;
+}
+
+.discount-ribbon::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0));
+    pointer-events: none;
+}
+
+.card-badges {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    z-index: 3;
+}
+
+.badge {
+    display: inline-block;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.92);
+}
+
+.badge.inactive { background: #fbe6e6; color: var(--red); }
+
+.badge.new {
+    background: rgba(20,20,20,0.85);
+    color: #fff;
+}
+
+/* Details section — compact padding, no separate border (the card
+   wrapper now owns the border/shadow), just a thin accent rule under
+   the image to tie the two halves together */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 9px 10px 10px;
+    border-top: 1px solid var(--border);
+    position: relative;
+}
+
+.card-body::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 34px;
+    height: 2px;
+    background: var(--red);
+}
+
+.category-pill {
+    display: inline-block;
+    align-self: flex-start;
+    background: var(--red-tint);
+    color: var(--red);
+    border: 1px solid rgba(179,18,28,0.18);
+    border-radius: 999px;
+    padding: 2px 8px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 4px;
+}
+
+.card-title {
+    font-size: 0.83rem;
+    font-weight: 700;
+    line-height: 1.25;
+    min-height: 2.1em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+/* ===== Stylish price block ===== */
+.price-block {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 3px;
+}
+
+.price-main {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 1px;
+    font-weight: 800;
+    color: var(--red);
+    line-height: 1;
+}
+
+.price-main .currency {
+    font-size: 0.62rem;
+    font-weight: 700;
+    margin-right: 2px;
+    opacity: 0.85;
+}
+
+.price-main .amount {
+    font-size: 1.02rem;
+    letter-spacing: -0.2px;
+}
+
+.price-was {
+    font-size: 0.68rem;
+    color: var(--muted);
+    text-decoration: line-through;
+    font-weight: 500;
+}
+
+.discount-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--red-tint);
+    color: var(--red);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 0.62rem;
+    font-weight: 800;
+}
+
+.card-sub {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+}
+
+.stock-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    flex-shrink: 0;
+}
+
+.stock-dot.low { background: var(--amber); }
+.stock-dot.out { background: var(--red); }
+
+.card-desc {
+    font-size: 0.74rem;
+    color: var(--ink);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.read-more-btn {
+    background: none;
+    border: none;
+    color: var(--red);
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    margin-bottom: 6px;
+}
+
+.card-actions {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+    padding-top: 6px;
+}
+
+.card-actions .icon-btn {
+    flex: 1;
+    height: 28px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.74rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.card-actions .icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+/* ===== Empty / loading states ===== */
+.state-msg {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 40px 20px;
+    grid-column: 1 / -1;
+}
+
+/* ===== Bottom sheet modal (forms + description viewer) ===== */
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,20,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+}
+
+.sheet-overlay.open { display: flex; }
+
+.sheet {
+    background: var(--card);
+    width: 100%;
+    max-width: 640px;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px calc(24px + var(--safe-b));
+}
+
+.sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 14px;
+}
+
+.sheet h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+}
+
+.form-group { margin-bottom: 13px; }
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    background: #faf7f0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 10px 11px;
+    font-size: 0.87rem;
+    font-family: inherit;
+    color: var(--ink);
+}
+
+.form-group select:disabled { opacity: 0.5; }
+.form-group textarea { resize: vertical; min-height: 70px; }
+
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+/* Category select + "add new category" button sit in one row, so the
+   button lines up exactly on the right edge of the select field. */
+.category-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.category-row select {
+    flex: 1;
+    min-width: 0; /* allow the select to shrink instead of pushing the button out */
+}
+
+.add-category-btn {
+    flex-shrink: 0;
+    width: 42px;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: var(--red-tint);
+    color: var(--red);
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.add-category-btn:active { background: rgba(179,18,28,0.18); }
+
+.discount-preview {
+    font-size: 0.76rem;
+    color: var(--muted);
+    margin-top: -6px;
+    margin-bottom: 13px;
+}
+
+.discount-preview strong { color: var(--red); }
+
+/* Compact gender toggle for the form */
+.gender-toggle { display: flex; gap: 8px; }
+
+.gender-btn {
+    flex: 0 0 auto;
+    padding: 9px 20px;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.gender-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+.image-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+
+.image-picker .thumb {
+    width: 60px; height: 60px; border-radius: 9px; object-fit: cover; border: 1px solid var(--border);
+}
+
+.image-picker .thumb-wrap { position: relative; }
+
+.image-picker .remove-thumb {
+    position: absolute; top: -6px; right: -6px; width: 19px; height: 19px; border-radius: 50%;
+    background: var(--red); color: #fff; border: 2px solid #fff; font-size: 0.62rem;
+    display: flex; align-items: center; justify-content: center; cursor: pointer;
+}
+
+.image-picker .add-thumb {
+    width: 60px; height: 60px; border-radius: 9px; border: 1.5px dashed var(--border); background: #faf7f0;
+    color: var(--muted); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor: pointer;
+}
+
+.sheet-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+.btn {
+    flex: 1; padding: 12px; border-radius: 9px; border: none; font-size: 0.87rem; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+}
+
+.btn.primary { background: var(--red); color: #fff; }
+.btn.primary:active { background: var(--red-dark); }
+.btn.secondary { background: #faf7f0; color: var(--ink); border: 1px solid var(--border); }
+
+.desc-modal-text { font-size: 0.86rem; line-height: 1.6; color: var(--ink); white-space: pre-wrap; }
+
+/* ===== Fullscreen image lightbox ===== */
+.lightbox-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,10,10,0.94);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 400;
+    touch-action: pan-y;
+}
+
+.lightbox-overlay.open { display: flex; }
+
+.lightbox-overlay img {
+    max-width: 92vw;
+    max-height: 82vh;
+    object-fit: contain;
+    border-radius: 6px;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.lightbox-close {
+    position: absolute;
+    top: calc(16px + var(--safe-t));
+    right: 16px;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    font-size: 1.3rem;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: none;
+    font-size: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.lightbox-nav.prev { left: 14px; }
+.lightbox-nav.next { right: 14px; }
+
+.lightbox-counter {
+    position: absolute;
+    bottom: calc(18px + var(--safe-b));
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: rgba(255,255,255,0.75);
+    font-size: 0.8rem;
+    z-index: 2;
+}
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + var(--safe-b));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <a href="/admin/dashboard" class="back-btn">&#8592;</a>
+        <h1>Products</h1>
+    </header>
+
+    <main class="admin-content">
+        <div class="filter-row">
+            <input type="text" id="searchInput" placeholder="Search name or SKU…" />
+            <select id="categoryFilter"><option value="">All categories</option></select>
+        </div>
+
+        <div class="tabs-row">
+            <div class="gender-tabs">
+                <button type="button" class="gender-tab active" data-gender="">All</button>
+                <button type="button" class="gender-tab" data-gender="MEN">Men</button>
+                <button type="button" class="gender-tab" data-gender="WOMEN">Women</button>
+            </div>
+            <button type="button" class="add-product-btn" id="addBtn">+ Add Product</button>
+        </div>
+
+        <div class="product-grid" id="grid"></div>
+    </main>
+
+    <!-- Create / Edit sheet -->
+    <div class="sheet-overlay" id="formOverlay">
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h2 id="formTitle">New Product</h2>
+
+            <input type="hidden" id="productId" />
+
+            <div class="form-group">
+                <label>Product name</label>
+                <input type="text" id="productName" placeholder="e.g. Classic Oxford Shirt" />
+            </div>
+
+            <div class="form-group">
+                <label>Gender</label>
+                <div class="gender-toggle">
+                    <button type="button" class="gender-btn" id="formGenderMen" data-gender="MEN">Men</button>
+                    <button type="button" class="gender-btn" id="formGenderWomen" data-gender="WOMEN">Women</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Category</label>
+                <div class="category-row">
+                    <select id="categorySelect" disabled>
+                        <option value="">Select a gender first</option>
+                    </select>
+                    <button type="button" class="add-category-btn" id="addCategoryBtn" title="Add new category">+</button>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Price (Rs.)</label>
+                    <input type="number" id="price" min="0" step="0.01" />
+                </div>
+                <div class="form-group">
+                    <label>Discount %</label>
+                    <input type="number" id="discountPercentage" min="0" max="100" step="0.01" value="0" />
+                </div>
+            </div>
+            <p class="discount-preview" id="discountPreview"></p>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Stock</label>
+                    <input type="number" id="stock" min="0" value="0" />
+                </div>
+                <div class="form-group">
+                    <label>Low stock alert at</label>
+                    <input type="number" id="lowStockThreshold" min="0" value="3" />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>SKU</label>
+                <input type="text" id="sku" placeholder="Optional" />
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="description" placeholder="Optional"></textarea>
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="isActive" checked style="width:auto;margin-right:6px;" />Active (visible in store)</label>
+            </div>
+
+            <div class="form-group">
+                <label>Images</label>
+                <div class="image-picker" id="imagePicker">
+                    <div class="add-thumb" id="addImageBtn">+</div>
+                </div>
+                <input type="file" id="imageInput" accept="image/*" multiple style="display:none;" />
+                <p style="font-size:0.7rem;color:var(--muted);margin-top:6px;">Existing images are removed individually; new ones upload on Save.</p>
+            </div>
+
+            <div class="sheet-actions">
+                <button class="btn secondary" id="cancelBtn">Cancel</button>
+                <button class="btn primary" id="saveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full description viewer (Read More) -->
+    <div class="sheet-overlay" id="descOverlay">
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h2 id="descTitle">Description</h2>
+            <div class="desc-modal-text" id="descBody"></div>
+            <div class="sheet-actions">
+                <button class="btn secondary" id="descCloseBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Fullscreen image lightbox -->
+    <div class="lightbox-overlay" id="lightboxOverlay">
+        <button class="lightbox-close" id="lightboxClose">&times;</button>
+        <button class="lightbox-nav prev" id="lightboxPrev">&#8249;</button>
+        <img id="lightboxImg" src="" alt="" />
+        <button class="lightbox-nav next" id="lightboxNext">&#8250;</button>
+        <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+
+    <script>
+        // ---------- shared helpers ----------
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function adminFetch(url, options = {}) {
+            const res = await fetch(url, { credentials: 'include', ...options });
+            let body;
+            try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+
+            if (res.status === 401 || res.status === 403) {
+                showToast(body.message || 'Session expired — please log in again');
+                setTimeout(() => (window.location.href = '/login'), 1200);
+                throw new Error(body.message || 'Unauthorized');
+            }
+            return body;
+        }
+
+        function openSheet(id) { document.getElementById(id).classList.add('open'); }
+        function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+
+        function debounce(fn, delay = 350) {
+            let t;
+            return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ---------- page logic ----------
+        const API = '/admin/api/products';
+        const CAT_API = '/admin/api/categories';
+
+        let categories = [];
+        let listGender = '';
+        let formGender = '';
+
+        let newFiles = [];
+        let existingImages = [];
+        let removedMediaIds = [];
+
+        let productImagesMap = {}; // product_id -> [urls], used by the lightbox
+
+        const DESC_TRUNCATE_LEN = 100;
+        const LOW_STOCK_DEFAULT = 3;
+
+        async function init() {
+            const catRes = await adminFetch(CAT_API);
+            if (catRes.success) categories = catRes.data;
+            loadProducts();
+        }
+
+        // ----- listing page: gender tabs + category select -----
+        function categoriesForGender(gender) {
+            return gender ? categories.filter(c => c.gender === gender) : categories;
+        }
+
+        function renderCategoryFilterOptions() {
+            const select = document.getElementById('categoryFilter');
+            const opts = categoriesForGender(listGender)
+                .map(c => `<option value="${c.category_id}">${escapeHtml(c.category_name)}</option>`)
+                .join('');
+            select.innerHTML = '<option value="">All categories</option>' + opts;
+            select.value = '';
+        }
+
+        document.querySelectorAll('.gender-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.gender-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                listGender = btn.dataset.gender;
+                renderCategoryFilterOptions();
+                loadProducts();
+            });
+        });
+
+        document.getElementById('categoryFilter').addEventListener('change', loadProducts);
+        document.getElementById('searchInput').addEventListener('input', debounce(loadProducts));
+
+        async function loadProducts() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '<p class="state-msg">Loading…</p>';
+
+            const params = new URLSearchParams({
+                search: document.getElementById('searchInput').value.trim(),
+                gender: listGender,
+                category_id: document.getElementById('categoryFilter').value,
+            });
+
+            const res = await adminFetch(`${API}?${params}`);
+            if (!res.success) return showToast(res.message);
+            renderGrid(sortByNewest(res.data.products));
+        }
+
+        // Newest-added stock first. Prefers a real timestamp field if the
+        // API provides one (created_at / createdAt), and falls back to
+        // product_id (higher id = created later on an auto-increment PK)
+        // so this still works even if the backend doesn't send a date.
+        function sortByNewest(products) {
+            return [...products].sort((a, b) => {
+                const aDate = a.created_at || a.createdAt;
+                const bDate = b.created_at || b.createdAt;
+                if (aDate && bDate) {
+                    const diff = new Date(bDate) - new Date(aDate);
+                    if (diff) return diff;
+                }
+                return (b.product_id || 0) - (a.product_id || 0);
+            });
+        }
+
+        function renderGrid(products) {
+            const grid = document.getElementById('grid');
+            if (!products.length) {
+                grid.innerHTML = '<p class="state-msg">No products match. Tap + to add one.</p>';
+                return;
+            }
+
+            productImagesMap = {};
+
+            grid.innerHTML = products.map((p, idx) => {
+                const images = p.images && p.images.length ? p.images : [];
+                productImagesMap[p.product_id] = images;
+
+                const desc = p.description || '';
+                const needsTruncate = desc.length > DESC_TRUNCATE_LEN;
+                const shortDesc = needsTruncate ? desc.slice(0, DESC_TRUNCATE_LEN).trim() + '…' : desc;
+
+                const imagesHtml = images.length
+                    ? images.map((url, i) => `<img src="${escapeHtml(url)}" class="${i === 0 ? 'active' : ''}" data-i="${i}" onerror="this.style.display='none'" />`).join('')
+                    : '<div class="card-image-placeholder">No image</div>';
+
+                const navHtml = images.length > 1 ? `
+                    <button type="button" class="carousel-nav prev" onclick="changeImage(event, ${p.product_id}, -1)">&#8249;</button>
+                    <button type="button" class="carousel-nav next" onclick="changeImage(event, ${p.product_id}, 1)">&#8250;</button>
+                    <div class="carousel-dots">
+                        ${images.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''}"></div>`).join('')}
+                    </div>
+                ` : '';
+
+                // Stylish price block: big current price w/ small currency
+                // prefix, strikethrough original + a discount chip when
+                // has_discount is true.
+                const priceHtml = p.has_discount
+                    ? `<div class="price-block">
+                         <span class="price-main"><span class="currency">Rs.</span><span class="amount">${Number(p.discounted_price).toLocaleString()}</span></span>
+                         <span class="price-was">Rs. ${Number(p.price).toLocaleString()}</span>
+                         <span class="discount-chip">-${Number(p.discount_percentage)}%</span>
+                       </div>`
+                    : `<div class="price-block">
+                         <span class="price-main"><span class="currency">Rs.</span><span class="amount">${Number(p.price).toLocaleString()}</span></span>
+                       </div>`;
+
+                const ribbonHtml = p.has_discount ? `<div class="discount-ribbon">${Number(p.discount_percentage)}% OFF</div>` : '';
+
+                // "New" badge for the first few cards in the (now newest-first) list
+                const isNew = idx < 4;
+
+                const stockClass = Number(p.stock) <= 0 ? 'out' : (Number(p.stock) <= (p.low_stock_threshold || LOW_STOCK_DEFAULT) ? 'low' : '');
+
+                return `
+                    <div class="product-card">
+                        <div class="card-image-wrap" id="imgwrap-${p.product_id}"
+                             onclick="openLightbox(${p.product_id})"
+                             ontouchstart="cardTouchStart(event, ${p.product_id})"
+                             ontouchend="cardTouchEnd(event, ${p.product_id})">
+                            ${ribbonHtml}
+                            <div class="card-badges">
+                                ${!p.is_active ? '<span class="badge inactive">Inactive</span>' : ''}
+                                ${isNew ? '<span class="badge new">New</span>' : ''}
+                            </div>
+                            ${imagesHtml}
+                            ${navHtml}
+                        </div>
+                        <div class="card-body">
+                            <span class="category-pill">${escapeHtml(p.category_name)}</span>
+                            <div class="card-title">${escapeHtml(p.product_name)}</div>
+                            ${priceHtml}
+                            <div class="card-sub"><span class="stock-dot ${stockClass}"></span>Stock: ${p.stock}${p.sku ? ' · ' + escapeHtml(p.sku) : ''}</div>
+                            ${desc ? `<div class="card-desc">${escapeHtml(shortDesc)}</div>` : ''}
+                            ${needsTruncate ? `<button class="read-more-btn" onclick='event.stopPropagation();showDescription(${JSON.stringify(p.product_name)}, ${JSON.stringify(desc)})'>Read more</button>` : ''}
+                            <div class="card-actions">
+                                <button class="icon-btn" onclick="editProduct(${p.product_id})">Edit</button>
+                                <button class="icon-btn danger" onclick="deleteProduct(${p.product_id})">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ----- in-card carousel -----
+        function changeImage(evt, productId, delta) {
+            evt.stopPropagation();
+            const wrap = document.getElementById(`imgwrap-${productId}`);
+            const imgs = Array.from(wrap.querySelectorAll('img'));
+            if (imgs.length < 2) return;
+
+            let current = imgs.findIndex(img => img.classList.contains('active'));
+            imgs[current].classList.remove('active');
+            current = (current + delta + imgs.length) % imgs.length;
+            imgs[current].classList.add('active');
+
+            wrap.querySelectorAll('.dot').forEach((d, i) => d.classList.toggle('active', i === current));
+        }
+
+        const cardTouch = {};
+        function cardTouchStart(evt, productId) { cardTouch[productId] = evt.changedTouches[0].clientX; }
+        function cardTouchEnd(evt, productId) {
+            const startX = cardTouch[productId];
+            if (startX === undefined) return;
+            const diff = evt.changedTouches[0].clientX - startX;
+            if (Math.abs(diff) > 40) {
+                evt.stopPropagation();
+                changeImage(evt, productId, diff < 0 ? 1 : -1);
+            }
+            delete cardTouch[productId];
+        }
+
+        // ----- description modal -----
+        function showDescription(title, fullText) {
+            document.getElementById('descTitle').textContent = title;
+            document.getElementById('descBody').textContent = fullText;
+            openSheet('descOverlay');
+        }
+        document.getElementById('descCloseBtn').addEventListener('click', () => closeSheet('descOverlay'));
+
+        // ----- fullscreen lightbox -----
+        let lightboxImages = [];
+        let lightboxIndex = 0;
+
+        function openLightbox(productId) {
+            const images = productImagesMap[productId] || [];
+            if (!images.length) return;
+
+            const wrap = document.getElementById(`imgwrap-${productId}`);
+            const activeImg = wrap.querySelector('img.active');
+            lightboxImages = images;
+            lightboxIndex = activeImg ? Number(activeImg.dataset.i) : 0;
+
+            renderLightbox();
+            document.getElementById('lightboxOverlay').classList.add('open');
+        }
+
+        function renderLightbox() {
+            document.getElementById('lightboxImg').src = lightboxImages[lightboxIndex];
+            const multi = lightboxImages.length > 1;
+            document.getElementById('lightboxPrev').style.display = multi ? 'flex' : 'none';
+            document.getElementById('lightboxNext').style.display = multi ? 'flex' : 'none';
+            document.getElementById('lightboxCounter').textContent = multi ? `${lightboxIndex + 1} / ${lightboxImages.length}` : '';
+        }
+
+        function lightboxChange(delta) {
+            lightboxIndex = (lightboxIndex + delta + lightboxImages.length) % lightboxImages.length;
+            renderLightbox();
+        }
+
+        function closeLightbox() { document.getElementById('lightboxOverlay').classList.remove('open'); }
+
+        document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+        document.getElementById('lightboxPrev').addEventListener('click', () => lightboxChange(-1));
+        document.getElementById('lightboxNext').addEventListener('click', () => lightboxChange(1));
+        document.getElementById('lightboxOverlay').addEventListener('click', (e) => {
+            if (e.target.id === 'lightboxOverlay') closeLightbox();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (!document.getElementById('lightboxOverlay').classList.contains('open')) return;
+            if (e.key === 'Escape') closeLightbox();
+            if (e.key === 'ArrowLeft') lightboxChange(-1);
+            if (e.key === 'ArrowRight') lightboxChange(1);
+        });
+
+        let lightboxTouchStartX = null;
+        document.getElementById('lightboxOverlay').addEventListener('touchstart', (e) => {
+            lightboxTouchStartX = e.changedTouches[0].clientX;
+        });
+        document.getElementById('lightboxOverlay').addEventListener('touchend', (e) => {
+            if (lightboxTouchStartX === null) return;
+            const diff = e.changedTouches[0].clientX - lightboxTouchStartX;
+            if (Math.abs(diff) > 50) lightboxChange(diff < 0 ? 1 : -1);
+            lightboxTouchStartX = null;
+        });
+
+        // ----- Add/Edit form -----
+        function setFormGender(gender) {
+            formGender = gender;
+            document.getElementById('formGenderMen').classList.toggle('active', gender === 'MEN');
+            document.getElementById('formGenderWomen').classList.toggle('active', gender === 'WOMEN');
+
+            const select = document.getElementById('categorySelect');
+            if (!gender) {
+                select.disabled = true;
+                select.innerHTML = '<option value="">Select a gender first</option>';
+                return;
+            }
+            select.disabled = false;
+            const opts = categoriesForGender(gender)
+                .map(c => `<option value="${c.category_id}">${escapeHtml(c.category_name)}</option>`)
+                .join('');
+            select.innerHTML = opts || '<option value="">No categories for this gender yet</option>';
+        }
+
+        document.getElementById('formGenderMen').addEventListener('click', () => setFormGender('MEN'));
+        document.getElementById('formGenderWomen').addEventListener('click', () => setFormGender('WOMEN'));
+
+        // "+" button next to the category select — jumps straight to the
+        // categories admin page so the admin can create the missing
+        // category, then come back and re-open this form.
+        document.getElementById('addCategoryBtn').addEventListener('click', () => {
+            window.location.href = '/admin/categories';
+        });
+
+        function updateDiscountPreview() {
+            const price = Number(document.getElementById('price').value) || 0;
+            const pct = Number(document.getElementById('discountPercentage').value) || 0;
+            const preview = document.getElementById('discountPreview');
+
+            if (!price || !pct) {
+                preview.textContent = '';
+                return;
+            }
+            const discounted = Math.round((price - (price * pct) / 100) * 100) / 100;
+            preview.innerHTML = `Customers will see: <s>Rs. ${price.toLocaleString()}</s> <strong>Rs. ${discounted.toLocaleString()}</strong>`;
+        }
+
+        document.getElementById('price').addEventListener('input', updateDiscountPreview);
+        document.getElementById('discountPercentage').addEventListener('input', updateDiscountPreview);
+
+        function resetForm() {
+            document.getElementById('productId').value = '';
+            document.getElementById('productName').value = '';
+            document.getElementById('price').value = '';
+            document.getElementById('discountPercentage').value = '0';
+            document.getElementById('stock').value = '0';
+            document.getElementById('sku').value = '';
+            document.getElementById('lowStockThreshold').value = '3';
+            document.getElementById('description').value = '';
+            document.getElementById('isActive').checked = true;
+            document.getElementById('discountPreview').textContent = '';
+            setFormGender('');
+            newFiles = [];
+            existingImages = [];
+            removedMediaIds = [];
+            renderImagePicker();
+        }
+
+        function openCreate() {
+            resetForm();
+            document.getElementById('formTitle').textContent = 'New Product';
+            openSheet('formOverlay');
+        }
+
+        async function editProduct(id) {
+            resetForm();
+            document.getElementById('formTitle').textContent = 'Edit Product';
+            openSheet('formOverlay');
+
+            const res = await adminFetch(`${API}/${id}`);
+            if (!res.success) return showToast(res.message);
+
+            const p = res.data;
+            document.getElementById('productId').value = p.product_id;
+            document.getElementById('productName').value = p.product_name;
+            document.getElementById('price').value = p.price;
+            document.getElementById('discountPercentage').value = p.discount_percentage || 0;
+            document.getElementById('stock').value = p.stock;
+            document.getElementById('sku').value = p.sku || '';
+            document.getElementById('lowStockThreshold').value = p.low_stock_threshold || 3;
+            document.getElementById('description').value = p.description || '';
+            document.getElementById('isActive').checked = !!p.is_active;
+            updateDiscountPreview();
+
+            const cat = categories.find(c => c.category_id === p.category_id);
+            setFormGender(cat ? cat.gender : '');
+            document.getElementById('categorySelect').value = p.category_id;
+
+            existingImages = p.media.map(m => ({ media_id: m.media_id, url: m.url }));
+            renderImagePicker();
+        }
+
+        function renderImagePicker() {
+            const picker = document.getElementById('imagePicker');
+            const existingHtml = existingImages.map(img => `
+                <div class="thumb-wrap">
+                    <img class="thumb" src="${escapeHtml(img.url)}" onerror="this.style.opacity=0.3" />
+                    <div class="remove-thumb" onclick="removeExistingImage(${img.media_id})">×</div>
+                </div>
+            `).join('');
+
+            const newHtml = newFiles.map((file, i) => `
+                <div class="thumb-wrap">
+                    <img class="thumb" src="${URL.createObjectURL(file)}" />
+                    <div class="remove-thumb" onclick="removeNewImage(${i})">×</div>
+                </div>
+            `).join('');
+
+            picker.innerHTML = existingHtml + newHtml + '<div class="add-thumb" id="addImageBtn">+</div>';
+            document.getElementById('addImageBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+        }
+
+        function removeExistingImage(mediaId) {
+            removedMediaIds.push(mediaId);
+            existingImages = existingImages.filter(img => img.media_id !== mediaId);
+            renderImagePicker();
+        }
+
+        function removeNewImage(index) {
+            newFiles.splice(index, 1);
+            renderImagePicker();
+        }
+
+        document.getElementById('imageInput').addEventListener('change', (e) => {
+            newFiles = newFiles.concat(Array.from(e.target.files));
+            renderImagePicker();
+            e.target.value = '';
+        });
+
+        async function saveProduct() {
+            const id = document.getElementById('productId').value;
+            const name = document.getElementById('productName').value.trim();
+            const price = document.getElementById('price').value;
+            const discountPercentage = document.getElementById('discountPercentage').value || '0';
+            const categoryId = document.getElementById('categorySelect').value;
+
+            if (!formGender) return showToast('Choose Men or Women first');
+            if (!name || !price || !categoryId) return showToast('Name, price, and category are required');
+            if (Number(discountPercentage) < 0 || Number(discountPercentage) > 100) return showToast('Discount must be between 0 and 100');
+
+            for (const mediaId of removedMediaIds) {
+                await adminFetch(`${API}/${id}/images/${mediaId}`, { method: 'DELETE' });
+            }
+
+            const formData = new FormData();
+            formData.append('product_name', name);
+            formData.append('description', document.getElementById('description').value.trim());
+            formData.append('price', price);
+            formData.append('discount_percentage', discountPercentage);
+            formData.append('stock', document.getElementById('stock').value || 0);
+            formData.append('sku', document.getElementById('sku').value.trim());
+            formData.append('category_id', categoryId);
+            formData.append('is_active', document.getElementById('isActive').checked ? '1' : '0');
+            formData.append('low_stock_threshold', document.getElementById('lowStockThreshold').value || 3);
+            newFiles.forEach(file => formData.append('images', file));
+
+            const res = await adminFetch(id ? `${API}/${id}` : API, {
+                method: id ? 'PUT' : 'POST',
+                body: formData,
+            });
+
+            showToast(res.message);
+            if (res.success) {
+                closeSheet('formOverlay');
+                loadProducts();
+            }
+        }
+
+        async function deleteProduct(id) {
+            if (!confirm('Delete this product and all its images? This cannot be undone.')) return;
+            const res = await adminFetch(`${API}/${id}`, { method: 'DELETE' });
+            showToast(res.message);
+            if (res.success) loadProducts();
+        }
+
+        document.getElementById('addBtn').addEventListener('click', openCreate);
+        document.getElementById('cancelBtn').addEventListener('click', () => closeSheet('formOverlay'));
+        document.getElementById('saveBtn').addEventListener('click', saveProduct);
+        document.getElementById('addImageBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+
+        init();
+    </script>
+</body>
+</html>

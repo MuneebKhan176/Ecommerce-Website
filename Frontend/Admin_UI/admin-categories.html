@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Faisalabad Textile Depot Admin — Categories</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #f6f1e7;
+    --card: #ffffff;
+    --ink: #141414;
+    --muted: #746f66;
+    --border: #e7e0d3;
+    --red: #b3121c;
+    --red-dark: #8c0e16;
+    --red-tint: rgba(179, 18, 28, 0.08);
+    --green: #1e7e34;
+    --amber: #b9791a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== Header ===== */
+.admin-header {
+    background: var(--ink);
+    color: #fff;
+    padding: calc(14px + var(--safe-t)) 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-header .back-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: #fff;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    font-weight: 800;
+    flex: 1;
+}
+
+/* ===== Content shell ===== */
+.admin-content {
+    flex: 1;
+    padding: 16px 20px calc(40px + var(--safe-b));
+    max-width: 1240px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ===== Search ===== */
+.filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.filter-row input[type="text"] {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 0.82rem;
+    color: var(--ink);
+    font-family: inherit;
+}
+
+.filter-row input:focus { outline: 2px solid var(--red); outline-offset: -1px; }
+
+/* ===== Row: gender tabs (left) + Add Category button (right) ===== */
+.tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.gender-tabs {
+    display: inline-flex;
+    gap: 4px;
+    background: var(--card);
+    padding: 4px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.gender-tab {
+    padding: 7px 16px;
+    border-radius: 7px;
+    border: none;
+    background: transparent;
+    font-size: 0.8rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.gender-tab.active { background: var(--red); color: #fff; }
+
+.add-category-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 10px 18px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 3px 10px rgba(179,18,28,0.25);
+}
+
+.add-category-btn:active { background: var(--red-dark); }
+
+@media (max-width: 480px) {
+    .add-category-btn { width: 100%; justify-content: center; }
+}
+
+/* ===== Category grid: 5 across desktop, responsive down to 1 ===== */
+.category-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 16px;
+    align-items: stretch;
+}
+
+@media (max-width: 1100px) { .category-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 860px)  { .category-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px)  { .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px)  { .category-grid { grid-template-columns: 1fr; } }
+
+.category-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header block — no image, just a soft gender-tinted panel with a big
+   initial, same "flows into the bordered body" treatment as products */
+.category-card-header {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.category-card-header.gender-MEN { background: linear-gradient(135deg, #e6edfb, #f6f1e7); }
+.category-card-header.gender-WOMEN { background: linear-gradient(135deg, #fbe6f0, #f6f1e7); }
+
+.category-card-header .initial {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--red);
+    opacity: 0.85;
+}
+
+.category-count-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.92);
+    color: var(--ink);
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
+/* Body — the ONLY bordered part, red-themed, rounded bottom corners,
+   seamlessly continuing from the header */
+.category-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    padding: 12px 13px 13px;
+    border: 1.5px solid var(--red);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    background: var(--card);
+}
+
+.gender-pill {
+    display: inline-block;
+    align-self: flex-start;
+    background: var(--red-tint);
+    color: var(--red);
+    border: 1px solid rgba(179,18,28,0.18);
+    border-radius: 999px;
+    padding: 2px 9px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 6px;
+}
+
+.category-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+    min-height: 2.3em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.category-actions {
+    margin-top: auto;
+    display: flex;
+    gap: 6px;
+    padding-top: 6px;
+}
+
+.category-actions .icon-btn {
+    flex: 1;
+    height: 32px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.category-actions .icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+/* ===== Empty / loading states ===== */
+.state-msg {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 40px 20px;
+    grid-column: 1 / -1;
+}
+
+/* ===== Bottom sheet modal (used for the form) ===== */
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,20,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+}
+
+.sheet-overlay.open { display: flex; }
+
+.sheet {
+    background: var(--card);
+    width: 100%;
+    max-width: 640px;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px calc(24px + var(--safe-b));
+}
+
+.sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 14px;
+}
+
+.sheet h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    margin-bottom: 16px;
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    background: #faf7f0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--ink);
+}
+
+/* Compact gender toggle in the form — same pattern as Add Product */
+.gender-toggle { display: flex; gap: 8px; }
+
+.gender-btn {
+    flex: 0 0 auto;
+    padding: 9px 20px;
+    border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.gender-btn.active { background: var(--red); color: #fff; border-color: var(--red); }
+
+.sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn.primary { background: var(--red); color: #fff; }
+.btn.primary:active { background: var(--red-dark); }
+.btn.secondary { background: #faf7f0; color: var(--ink); border: 1px solid var(--border); }
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + var(--safe-b));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <a href="/admin/dashboard" class="back-btn">&#8592;</a>
+        <h1>Categories</h1>
+    </header>
+
+    <main class="admin-content">
+        <div class="filter-row">
+            <input type="text" id="searchInput" placeholder="Search categories…" />
+        </div>
+
+        <div class="tabs-row">
+            <div class="gender-tabs">
+                <button type="button" class="gender-tab active" data-gender="">All</button>
+                <button type="button" class="gender-tab" data-gender="MEN">Men</button>
+                <button type="button" class="gender-tab" data-gender="WOMEN">Women</button>
+            </div>
+            <button type="button" class="add-category-btn" id="addBtn">+ Add Category</button>
+        </div>
+
+        <div class="category-grid" id="grid"></div>
+    </main>
+
+    <!-- Create / Edit sheet -->
+    <div class="sheet-overlay" id="formOverlay">
+        <div class="sheet">
+            <div class="sheet-handle"></div>
+            <h2 id="formTitle">New Category</h2>
+
+            <input type="hidden" id="categoryId" />
+
+            <div class="form-group">
+                <label>Gender</label>
+                <div class="gender-toggle">
+                    <button type="button" class="gender-btn" id="formGenderMen" data-gender="MEN">Men</button>
+                    <button type="button" class="gender-btn" id="formGenderWomen" data-gender="WOMEN">Women</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Category name</label>
+                <input type="text" id="categoryName" placeholder="e.g. Formal Shirts" />
+            </div>
+
+            <div class="sheet-actions">
+                <button class="btn secondary" id="cancelBtn">Cancel</button>
+                <button class="btn primary" id="saveBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ---------- shared helpers ----------
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function adminFetch(url, options = {}) {
+            const res = await fetch(url, { credentials: 'include', ...options });
+            let body;
+            try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+
+            if (res.status === 401 || res.status === 403) {
+                showToast(body.message || 'Session expired — please log in again');
+                setTimeout(() => (window.location.href = '/login'), 1200);
+                throw new Error(body.message || 'Unauthorized');
+            }
+            return body;
+        }
+
+        function openSheet(id) { document.getElementById(id).classList.add('open'); }
+        function closeSheet(id) { document.getElementById(id).classList.remove('open'); }
+
+        function debounce(fn, delay = 300) {
+            let t;
+            return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+        }
+
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // ---------- page logic ----------
+        const API = '/admin/api/categories';
+        let categories = [];
+        let listGender = '';
+        let formGender = '';
+
+        async function loadCategories() {
+            document.getElementById('grid').innerHTML = '<p class="state-msg">Loading…</p>';
+            const res = await adminFetch(API);
+            if (!res.success) return showToast(res.message);
+            categories = res.data;
+            render();
+        }
+
+        // gender tabs
+        document.querySelectorAll('.gender-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.gender-tab').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                listGender = btn.dataset.gender;
+                render();
+            });
+        });
+
+        document.getElementById('searchInput').addEventListener('input', debounce(render));
+
+        function render() {
+            const search = document.getElementById('searchInput').value.trim().toLowerCase();
+
+            let filtered = listGender ? categories.filter(c => c.gender === listGender) : categories;
+            if (search) {
+                filtered = filtered.filter(c => c.category_name.toLowerCase().includes(search));
+            }
+
+            const grid = document.getElementById('grid');
+
+            if (!filtered.length) {
+                grid.innerHTML = '<p class="state-msg">No categories match. Tap + Add Category to create one.</p>';
+                return;
+            }
+
+            grid.innerHTML = filtered.map(c => `
+                <div class="category-card">
+                    <div class="category-card-header gender-${c.gender}">
+                        <span class="initial">${c.gender === 'MEN' ? 'M' : 'W'}</span>
+                        <span class="category-count-badge">${c.product_count} product${c.product_count === 1 ? '' : 's'}</span>
+                    </div>
+                    <div class="category-card-body">
+                        <span class="gender-pill">${c.gender}</span>
+                        <div class="category-name">${escapeHtml(c.category_name)}</div>
+                        <div class="category-actions">
+                            <button class="icon-btn" onclick="editCategory(${c.category_id})">Edit</button>
+                            <button class="icon-btn danger" onclick="deleteCategory(${c.category_id}, ${c.product_count})">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ----- Add/Edit form -----
+        function setFormGender(gender) {
+            formGender = gender;
+            document.getElementById('formGenderMen').classList.toggle('active', gender === 'MEN');
+            document.getElementById('formGenderWomen').classList.toggle('active', gender === 'WOMEN');
+        }
+
+        document.getElementById('formGenderMen').addEventListener('click', () => setFormGender('MEN'));
+        document.getElementById('formGenderWomen').addEventListener('click', () => setFormGender('WOMEN'));
+
+        function openCreate() {
+            document.getElementById('formTitle').textContent = 'New Category';
+            document.getElementById('categoryId').value = '';
+            document.getElementById('categoryName').value = '';
+            setFormGender(listGender || 'MEN');
+            openSheet('formOverlay');
+        }
+
+        function editCategory(id) {
+            const c = categories.find(x => x.category_id === id);
+            if (!c) return;
+            document.getElementById('formTitle').textContent = 'Edit Category';
+            document.getElementById('categoryId').value = c.category_id;
+            document.getElementById('categoryName').value = c.category_name;
+            setFormGender(c.gender);
+            openSheet('formOverlay');
+        }
+
+        async function saveCategory() {
+            const id = document.getElementById('categoryId').value;
+            const payload = {
+                gender: formGender,
+                category_name: document.getElementById('categoryName').value.trim(),
+            };
+            if (!payload.gender) return showToast('Choose Men or Women first');
+            if (!payload.category_name) return showToast('Category name is required');
+
+            const res = await adminFetch(id ? `${API}/${id}` : API, {
+                method: id ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            showToast(res.message);
+            if (res.success) {
+                closeSheet('formOverlay');
+                loadCategories();
+            }
+        }
+
+        async function deleteCategory(id, productCount) {
+            if (productCount > 0) {
+                return showToast(`Can't delete — ${productCount} product(s) still in this category`);
+            }
+            if (!confirm('Delete this category? This cannot be undone.')) return;
+
+            const res = await adminFetch(`${API}/${id}`, { method: 'DELETE' });
+            showToast(res.message);
+            if (res.success) loadCategories();
+        }
+
+        document.getElementById('addBtn').addEventListener('click', openCreate);
+        document.getElementById('cancelBtn').addEventListener('click', () => closeSheet('formOverlay'));
+        document.getElementById('saveBtn').addEventListener('click', saveCategory);
+
+        loadCategories();
+    </script>
+</body>
+</html>

@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+<title>Checkout — Faisalabad Textile Depot</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+    --bg: #f6f1e7; --card: #ffffff; --ink: #141414; --muted: #746f66; --border: #e7e0d3;
+    --red: #b3121c; --red-dark: #8c0e16; --red-tint: rgba(179, 18, 28, 0.08);
+    --green: #1e7e34;
+    --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+}
+html, body { height: 100%; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--ink); min-height: 100dvh; }
+img { max-width: 100%; display: block; }
+a { color: inherit; }
+button { cursor: pointer; font-family: inherit; }
+
+.topbar {
+    background: var(--ink); color: #fff;
+    padding: calc(14px + var(--safe-t)) 20px 14px;
+    display: flex; align-items: center; gap: 12px;
+    position: sticky; top: 0; z-index: 50;
+}
+.topbar a.back { color: #fff; text-decoration: none; font-size: 1.2rem; }
+.topbar h1 { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 800; }
+
+.page-wrap { max-width: 920px; margin: 0 auto; padding: 22px 18px calc(60px + var(--safe-b)); }
+@media (max-width: 480px) { .page-wrap { padding: 16px 12px calc(90px + var(--safe-b)); } }
+
+.section-title { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--red); margin-bottom: 10px; }
+
+.checkout-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; align-items: start; }
+@media (max-width: 800px) { .checkout-layout { grid-template-columns: 1fr; } }
+
+.card-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+@media (max-width: 480px) { .card-box { padding: 14px; border-radius: 12px; } }
+
+/* order items */
+.order-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.order-item:last-child { border-bottom: none; }
+.order-item img { width: 62px; height: 62px; border-radius: 9px; object-fit: cover; background: #efe9db; flex-shrink: 0; }
+.order-item .oi-info { flex: 1; min-width: 0; }
+.order-item .oi-name { font-size: 0.85rem; font-weight: 700; margin-bottom: 3px; }
+.order-item .oi-cat { font-size: 0.68rem; color: var(--muted); margin-bottom: 4px; }
+.order-item .oi-price { font-size: 0.85rem; font-weight: 800; color: var(--red); }
+.order-item .oi-price .was { font-size: 0.7rem; color: var(--muted); text-decoration: line-through; font-weight: 500; margin-left: 5px; }
+.order-item .oi-line-total { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+.order-item .oi-remove { align-self: flex-start; background: none; border: none; color: var(--muted); font-size: 1rem; padding: 4px; }
+.order-item .oi-remove:hover { color: var(--red); }
+.oi-stock { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
+.oi-stock.low { color: var(--red); font-weight: 700; }
+
+.qty-stepper { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.qty-stepper button {
+    width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--border); background: #faf7f0;
+    font-weight: 800; color: var(--red); font-size: 0.95rem; display: flex; align-items: center; justify-content: center;
+    line-height: 1;
+}
+.qty-stepper button:disabled { opacity: 0.35; cursor: not-allowed; color: var(--muted); }
+.qty-stepper .qty-value { min-width: 22px; text-align: center; font-weight: 800; font-size: 0.85rem; }
+
+.summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; color: var(--muted); }
+.summary-row.total { font-size: 1rem; font-weight: 800; color: var(--ink); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+
+/* payment info card */
+.payment-instructions { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+.payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .payment-methods { grid-template-columns: 1fr; } }
+.payment-method { border: 1px solid var(--border); border-left: 4px solid var(--red); border-radius: 10px; padding: 14px; background: #faf7f0; }
+.pm-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; gap: 8px; flex-wrap: wrap; }
+.pm-badge { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; background: var(--red-tint); color: var(--red); padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.pm-name { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 0.95rem; }
+.pm-row { display: flex; align-items: center; justify-content: space-between; font-size: 0.76rem; color: var(--muted); padding: 5px 0; gap: 8px; flex-wrap: wrap; }
+.pm-row strong { color: var(--ink); font-size: 0.82rem; letter-spacing: 0.3px; }
+.pm-acc-wrap { display: flex; align-items: center; gap: 6px; }
+.copy-icon-btn {
+    background: transparent; border: none; color: var(--red); padding: 5px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+}
+.copy-icon-btn:hover { background: var(--red-tint); }
+.copy-icon-btn:active { transform: scale(0.92); }
+.copy-icon-btn.copied { color: var(--green); }
+.copy-icon-btn svg { display: block; }
+
+/* form */
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 0.76rem; font-weight: 700; margin-bottom: 5px; color: var(--muted); }
+.req-star { color: var(--red); }
+.form-group input, .form-group textarea, .form-group select {
+    width: 100%; background: #faf7f0; border: 1px solid var(--border); border-radius: 9px;
+    padding: 10px 12px; font-size: 0.86rem; color: var(--ink); font-family: inherit;
+}
+.form-group select { appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8'><path d='M0 0l6 8 6-8z' fill='%23746f66'/></svg>");
+    background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px;
+}
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: 2px solid var(--red); outline-offset: -1px; }
+.form-group input.field-error, .form-group textarea.field-error, .form-group select.field-error { outline: 2px solid var(--red); outline-offset: -1px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
+
+/* single-screenshot upload */
+.upload-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.upload-tile { width: 72px; height: 72px; border-radius: 10px; position: relative; overflow: hidden; flex-shrink: 0; }
+.upload-tile.add-tile {
+    border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; color: var(--muted); cursor: pointer; background: #faf7f0;
+}
+.upload-tile.add-tile:hover { border-color: var(--red); color: var(--red); }
+.upload-tile.add-tile input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.upload-tile.has-image img { width: 100%; height: 100%; object-fit: cover; }
+.upload-tile .remove-tile {
+    position: absolute; top: 3px; right: 3px; background: rgba(20,20,20,0.7); color: #fff; border: none;
+    border-radius: 50%; width: 18px; height: 18px; font-size: 0.7rem; line-height: 1; display: flex; align-items: center; justify-content: center;
+}
+.upload-hint { font-size: 0.7rem; color: var(--muted); margin-top: 8px; }
+
+.place-order-btn {
+    width: 100%; padding: 14px; border-radius: 10px; border: none; background: var(--red); color: #fff;
+    font-size: 0.92rem; font-weight: 800; font-family: inherit; margin-top: 6px;
+}
+.place-order-btn:hover { background: var(--red-dark); }
+.place-order-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 0.9rem; }
+.empty-state a { color: var(--red); font-weight: 700; text-decoration: underline; }
+
+.success-screen { text-align: center; padding: 60px 20px; }
+.success-screen .check-circle { width: 62px; height: 62px; border-radius: 50%; background: var(--red-tint); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 16px; }
+.success-screen h2 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 8px; }
+.success-screen p { color: var(--muted); font-size: 0.88rem; margin-bottom: 18px; }
+.success-screen a.btn-link { display: inline-block; background: var(--red); color: #fff; padding: 11px 22px; border-radius: 9px; text-decoration: none; font-size: 0.85rem; font-weight: 700; }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + var(--safe-b)); transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 0.82rem; opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 500; pointer-events: none; max-width: 90%; text-align: center; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+    <a href="/user-cart" class="back">&#8249;</a>
+    <!-- Note: this page is served at /checkout, not /user-order —
+         /user-order is your existing "My Orders" history page. -->
+    <h1>Checkout</h1>
+</div>
+
+<div class="page-wrap" id="pageWrap">
+    <div class="checkout-layout" id="checkoutLayout">
+        <div>
+            <div class="section-title">Order Summary</div>
+            <div class="card-box" id="orderItemsBox"></div>
+
+            <div class="section-title">Payment Details</div>
+            <div class="card-box payment-info-box">
+                <p class="payment-instructions">
+                    Transfer the total amount to one of the accounts below, then upload your payment
+                    screenshot so we can verify it.
+                </p>
+                <div class="payment-methods">
+                    <div class="payment-method">
+                        <div class="pm-header">
+                            <span class="pm-name">Meezan Bank</span>
+                            <span class="pm-badge">Bank Transfer</span>
+                        </div>
+                        <div class="pm-row"><span>Account Title</span><strong>M Haseeb Sarfraz</strong></div>
+                        <div class="pm-row">
+                            <span>Account Number</span>
+                            <span class="pm-acc-wrap">
+                                <strong>05130110564428</strong>
+                                <button type="button" class="copy-icon-btn" onclick="copyText('05130110564428', this)" aria-label="Copy account number" title="Copy account number">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                            </span>
+                        </div>
+                        <div class="pm-row"><span>Bank</span><strong>Meezan Bank Limited</strong></div>
+                    </div>
+                    <div class="payment-method">
+                        <div class="pm-header">
+                            <span class="pm-name">JazzCash App</span>
+                            <span class="pm-badge">Mobile Wallet</span>
+                        </div>
+                        <div class="pm-row"><span>Account Title</span><strong>Muhammad Sarfraz</strong></div>
+                        <div class="pm-row">
+                            <span>Account Number</span>
+                            <span class="pm-acc-wrap">
+                                <strong>03000671070</strong>
+                                <button type="button" class="copy-icon-btn" onclick="copyText('03000671070', this)" aria-label="Copy account number" title="Copy account number">
+                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                </button>
+                            </span>
+                        </div>
+                        <div class="pm-row"><span>Service</span><strong>JazzCash</strong></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <div class="section-title">Shipping Details</div>
+            <div class="card-box">
+                <form id="checkoutForm" novalidate>
+                    <div class="form-group">
+                        <label>Full Name <span class="req-star">*</span></label>
+                        <input type="text" name="full_name" required minlength="2" />
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>Phone Number <span class="req-star">*</span></label>
+                            <input type="tel" name="phone" placeholder="03XXXXXXXXX" pattern="03[0-9]{9}" maxlength="11" inputmode="numeric" required />
+                        </div>
+                        <div class="form-group">
+                            <label>Postal Code <span class="req-star">*</span></label>
+                            <input type="text" name="postal_code" required minlength="4" maxlength="10" />
+                        </div>
+                    </div>
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label>City <span class="req-star">*</span></label>
+                            <input type="text" name="city" required minlength="2" />
+                        </div>
+                        <div class="form-group">
+                            <label>Province <span class="req-star">*</span></label>
+                            <select name="province" required>
+                                <option value="" disabled selected>Select province</option>
+                                <option value="Punjab">Punjab</option>
+                                <option value="Sindh">Sindh</option>
+                                <option value="Khyber Pakhtunkhwa">Khyber Pakhtunkhwa</option>
+                                <option value="Balochistan">Balochistan</option>
+                                <option value="Gilgit-Baltistan">Gilgit-Baltistan</option>
+                                <option value="Azad Jammu &amp; Kashmir">Azad Jammu &amp; Kashmir</option>
+                                <option value="Islamabad Capital Territory">Islamabad Capital Territory</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Full Address <span class="req-star">*</span></label>
+                        <textarea name="address" rows="3" required minlength="8"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Screenshot <span class="req-star">*</span></label>
+                        <div class="upload-grid" id="uploadGrid"></div>
+                        <div class="upload-hint">Upload a screenshot of your transaction. Remove it to upload a different one.</div>
+                    </div>
+
+                    <button type="submit" class="place-order-btn" id="placeOrderBtn">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) { toast = document.createElement('div'); toast.id = 'toast'; toast.className = 'toast'; document.body.appendChild(toast); }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2200);
+}
+
+async function apiFetch(url, options = {}) {
+    try {
+        const res = await fetch(url, { credentials: 'include', ...options });
+        let body;
+        try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+        if (res.status === 401 || res.status === 403) {
+            showToast(body.message || 'Session expired — please log in again');
+            setTimeout(() => (window.location.href = '/login'), 1200);
+            throw new Error(body.message || 'Unauthorized');
+        }
+        return body;
+    } catch (err) {
+        return { success: false, message: err.message || 'Network error' };
+    }
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function copyText(text, btn) {
+    const finish = () => {
+        btn.classList.add('copied');
+        setTimeout(() => btn.classList.remove('copied'), 1200);
+        showToast('Account number copied');
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(finish).catch(() => showToast('Could not copy — please copy manually'));
+    } else {
+        showToast('Could not copy — please copy manually');
+    }
+}
+
+/* ----- phone: digits only, 03XXXXXXXXX, hard-capped at 11 chars ----- */
+function sanitizePhoneInput(el) {
+    el.addEventListener('input', () => {
+        el.value = el.value.replace(/\D/g, '').slice(0, 11);
+    });
+    el.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        el.value = (el.value + text).replace(/\D/g, '').slice(0, 11);
+    });
+}
+document.querySelectorAll('input[name="phone"]').forEach(sanitizePhoneInput);
+
+const CHECKOUT_KEY = 'checkoutItems';
+// Mirrors SHIPPING_PRICE in routes/userOrderRoutes.js — keep these in sync.
+const SHIPPING_PRICE = 250;
+
+let selectedItems = []; // full cart-item objects (+ quantity), filtered to what the user chose
+let paymentFile = null; // single File object selected as payment proof
+
+function readCheckoutIds() {
+    // Supports both the normal flow (set by the cart page) and a direct
+    // link with ?items=12,15,20 (e.g. a bookmarked "Buy Now" redirect).
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = params.get('items');
+    if (fromQuery) {
+        return fromQuery.split(',').map(s => Number(s.split(':')[0])).filter(Boolean);
+    }
+    try {
+        const stored = JSON.parse(sessionStorage.getItem(CHECKOUT_KEY) || '[]');
+        return Array.isArray(stored) ? stored.filter(Boolean) : [];
+    } catch { return []; }
+}
+
+function renderOrderItems() {
+    const box = document.getElementById('orderItemsBox');
+    box.innerHTML = '';
+
+    selectedItems.forEach(item => {
+        const img = (item.images && item.images[0]) || item.image || '';
+        const maxStock = Math.max(Number(item.stock) || 0, 0);
+        const lineTotal = Math.round(Number(item.discounted_price) * item.quantity * 100) / 100;
+        const row = document.createElement('div');
+        row.className = 'order-item';
+        row.innerHTML = `
+            ${img ? `<img src="${escapeHtml(img)}" />` : `<div style="width:62px;height:62px;border-radius:9px;background:#efe9db;flex-shrink:0;"></div>`}
+            <div class="oi-info">
+                <div class="oi-name">${escapeHtml(item.product_name)}</div>
+                <div class="oi-cat">${escapeHtml(item.category_name || '')}</div>
+                <div class="oi-price">Rs. ${Number(item.discounted_price).toLocaleString()}${item.has_discount ? `<span class="was">Rs. ${Number(item.price).toLocaleString()}</span>` : ''}</div>
+                <div class="oi-line-total">Line total: Rs. ${lineTotal.toLocaleString()}</div>
+                <div class="qty-stepper">
+                    <button type="button" onclick="changeQty(${item.product_id}, -1)" ${item.quantity <= 1 ? 'disabled' : ''}>&minus;</button>
+                    <span class="qty-value">${item.quantity}</span>
+                    <button type="button" onclick="changeQty(${item.product_id}, 1)" ${item.quantity >= maxStock ? 'disabled' : ''}>+</button>
+                </div>
+                <div class="oi-stock ${maxStock <= 5 ? 'low' : ''}">${maxStock} in stock</div>
+            </div>
+            <button type="button" class="oi-remove" title="Remove from this order" onclick="removeFromOrder(${item.product_id})">&times;</button>
+        `;
+        box.appendChild(row);
+    });
+
+    const subtotal = selectedItems.reduce((s, i) => s + Number(i.discounted_price) * i.quantity, 0);
+    const total = subtotal + SHIPPING_PRICE;
+    const summary = document.createElement('div');
+    summary.innerHTML = `
+        <div class="summary-row"><span>Subtotal</span><span>Rs. ${Math.round(subtotal).toLocaleString()}</span></div>
+        <div class="summary-row"><span>Shipping</span><span>Rs. ${SHIPPING_PRICE.toLocaleString()}</span></div>
+        <div class="summary-row total"><span>Total</span><span>Rs. ${Math.round(total).toLocaleString()}</span></div>
+    `;
+    box.appendChild(summary);
+
+    document.getElementById('placeOrderBtn').disabled = !selectedItems.length;
+}
+
+function changeQty(productId, delta) {
+    const item = selectedItems.find(i => i.product_id === productId);
+    if (!item) return;
+    const maxStock = Math.max(Number(item.stock) || 0, 0);
+    const next = item.quantity + delta;
+    if (next < 1 || next > maxStock) return;
+    item.quantity = next;
+    renderOrderItems();
+}
+
+function removeFromOrder(productId) {
+    selectedItems = selectedItems.filter(i => i.product_id !== productId);
+    sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(selectedItems.map(i => i.product_id)));
+    if (!selectedItems.length) { renderEmptyState(); return; }
+    renderOrderItems();
+}
+
+function renderEmptyState() {
+    document.getElementById('pageWrap').innerHTML = `
+        <div class="empty-state">
+            No items selected for checkout.<br/><br/>
+            <a href="/user-cart">← Go back to your cart and select items</a>
+        </div>
+    `;
+}
+
+async function loadSelectedItems() {
+    const ids = readCheckoutIds();
+    if (!ids.length) { renderEmptyState(); return; }
+
+    const res = await apiFetch('/api/cart');
+    if (!res.success) {
+        showToast('Could not load your cart items');
+        renderEmptyState();
+        return;
+    }
+
+    const cartItems = (res.data && res.data.items) || [];
+    selectedItems = cartItems
+        .filter(i => ids.includes(i.product_id) && i.is_active && Number(i.stock) > 0)
+        .map(i => ({ ...i, quantity: 1 })); // default quantity is always 1
+
+    if (!selectedItems.length) { renderEmptyState(); return; }
+    renderOrderItems();
+}
+
+/* ----- single payment screenshot ----- */
+function renderUploadGrid() {
+    const grid = document.getElementById('uploadGrid');
+    grid.innerHTML = '';
+
+    if (paymentFile) {
+        const tile = document.createElement('div');
+        tile.className = 'upload-tile has-image';
+        const url = URL.createObjectURL(paymentFile);
+        tile.innerHTML = `
+            <img src="${url}" alt="Payment screenshot" />
+            <button type="button" class="remove-tile" title="Remove" onclick="removePaymentFile()">&times;</button>
+        `;
+        grid.appendChild(tile);
+    } else {
+        const addTile = document.createElement('label');
+        addTile.className = 'upload-tile add-tile';
+        addTile.innerHTML = `<span>+</span><input type="file" accept="image/*" id="screenshotInput" />`;
+        grid.appendChild(addTile);
+        document.getElementById('screenshotInput').addEventListener('change', handleFileSelect);
+    }
+}
+
+function handleFileSelect(e) {
+    const file = (e.target.files || [])[0];
+    if (file) paymentFile = file;
+    renderUploadGrid();
+}
+
+function removePaymentFile() {
+    paymentFile = null;
+    renderUploadGrid();
+}
+
+renderUploadGrid();
+
+/* ----- form validation helpers ----- */
+function markField(el, hasError) {
+    el.classList.toggle('field-error', hasError);
+}
+
+function validateForm(form) {
+    const errors = [];
+    const fields = [
+        { el: form.full_name, name: 'Full name' },
+        { el: form.phone, name: 'Phone number' },
+        { el: form.postal_code, name: 'Postal code' },
+        { el: form.city, name: 'City' },
+        { el: form.province, name: 'Province' },
+        { el: form.address, name: 'Address' },
+    ];
+
+    fields.forEach(({ el, name }) => {
+        const val = (el.value || '').trim();
+        const empty = !val;
+        markField(el, empty);
+        if (empty) errors.push(`${name} is required`);
+    });
+
+    const phoneVal = (form.phone.value || '').trim();
+    if (phoneVal && !/^03[0-9]{9}$/.test(phoneVal)) {
+        markField(form.phone, true);
+        errors.push('Enter a valid phone number in the format 03XXXXXXXXX');
+    }
+
+    if (!selectedItems.length) errors.push('Your order has no items');
+
+    selectedItems.forEach(item => {
+        const maxStock = Math.max(Number(item.stock) || 0, 0);
+        if (item.quantity < 1 || item.quantity > maxStock) {
+            errors.push(`${item.product_name}: quantity must be between 1 and ${maxStock}`);
+        }
+    });
+
+    if (!paymentFile) errors.push('Upload a payment screenshot');
+
+    return errors;
+}
+
+/* ----- submit order ----- */
+document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selectedItems.length) return;
+
+    const form = e.target;
+    const errors = validateForm(form);
+    if (errors.length) {
+        showToast(errors[0]);
+        return;
+    }
+
+    const btn = document.getElementById('placeOrderBtn');
+    btn.disabled = true;
+    btn.textContent = 'Placing order…';
+
+    const fd = new FormData();
+    fd.append('full_name', form.full_name.value.trim());
+    fd.append('phone', form.phone.value.trim());
+    fd.append('city', form.city.value.trim());
+    fd.append('province', form.province.value.trim());
+    fd.append('postal_code', form.postal_code.value.trim());
+    fd.append('address', form.address.value.trim());
+    fd.append('items', JSON.stringify(selectedItems.map(i => ({ product_id: i.product_id, quantity: i.quantity }))));
+
+    // Single screenshot — matches upload.single('screenshot') on the backend.
+    fd.append('screenshot', paymentFile);
+
+    const res = await apiFetch('/api/orders', { method: 'POST', body: fd });
+
+    if (res.success) {
+        sessionStorage.removeItem(CHECKOUT_KEY);
+        const orderId = res.data && res.data.order_id;
+        document.getElementById('pageWrap').innerHTML = `
+            <div class="success-screen">
+                <div class="check-circle">&#10003;</div>
+                <h2>Order Placed!</h2>
+                <p>${escapeHtml(res.message || 'We will verify your payment shortly.')}${orderId ? ` (Order #${orderId})` : ''}</p>
+                <a class="btn-link" href="/user-order">View My Orders</a>
+            </div>
+        `;
+    } else {
+        btn.disabled = false;
+        btn.textContent = 'Place Order';
+        showToast(res.message || 'Could not place order');
+    }
+});
+
+loadSelectedItems();
+</script>
+</body>
+</html>

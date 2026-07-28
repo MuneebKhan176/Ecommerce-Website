@@ -1,0 +1,23 @@
+{
+  "name": "bin-sarfraz-clothing",
+  "version": "1.0.0",
+  "description": "Login/Register + Auth backend for the Bin-Sarfraz clothing e-commerce site",
+  "main": "server.js",
+  "scripts": {
+    "web": "nodemon web.js",
+    "seed:admins": "nodemon seedAdmins.js",
+    "admin": "node utils/seedadmins"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1095.0",
+    "bcryptjs": "^2.4.3",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "mysql2": "^3.10.0",
+    "nodemailer": "^9.0.3",
+    "uuid": "^14.0.1"
+  }
+}

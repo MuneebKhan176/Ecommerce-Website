@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Faisalabad Textile Depot Admin — Inventory</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+:root {
+    --bg: #f6f1e7;
+    --card: #ffffff;
+    --ink: #141414;
+    --muted: #746f66;
+    --border: #e7e0d3;
+    --red: #b3121c;
+    --red-dark: #8c0e16;
+    --green: #1e7e34;
+    --amber: #b9791a;
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+}
+
+html, body { height: 100%; }
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ===== Header (shared black bar, back button + title) ===== */
+.admin-header {
+    background: var(--ink);
+    color: #fff;
+    padding: calc(14px + var(--safe-t)) 16px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.admin-header .back-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.08);
+    border: none;
+    color: #fff;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.admin-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    flex: 1;
+}
+
+.admin-header .header-action {
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* ===== Content shell ===== */
+.admin-content {
+    flex: 1;
+    padding: 16px 16px calc(90px + var(--safe-b));
+    max-width: 720px;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* ===== Toolbar: search + filters ===== */
+.toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+
+.toolbar input[type="text"],
+.toolbar select {
+    flex: 1;
+    min-width: 120px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 0.88rem;
+    color: var(--ink);
+    font-family: inherit;
+}
+
+.toolbar input[type="text"]:focus,
+.toolbar select:focus { outline: 2px solid var(--red); outline-offset: -1px; }
+
+/* ===== Cards / list items ===== */
+.item-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.item-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #faf7f0;
+    border: 1px solid var(--border);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.item-thumb.placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    font-size: 0.7rem;
+    text-align: center;
+}
+
+.item-body { flex: 1; min-width: 0; }
+
+.item-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.item-sub {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.icon-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+/* ===== Badges ===== */
+.badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
+.badge.status-PENDING { background: #fdf1dc; color: var(--amber); }
+.badge.status-CONFIRMED,
+.badge.status-PACKED { background: #e6edfb; color: #2a53a8; }
+.badge.status-SHIPPED { background: #e9e4fb; color: #5a34b8; }
+.badge.status-DELIVERED,
+.badge.status-COMPLETED { background: #e3f4e7; color: var(--green); }
+.badge.status-CANCELLED { background: #fbe6e6; color: var(--red); }
+.badge.low-stock { background: #fbe6e6; color: var(--red); }
+.badge.in-stock { background: #e3f4e7; color: var(--green); }
+
+/* ===== Floating action button ===== */
+.fab {
+    position: fixed;
+    right: 20px;
+    bottom: calc(24px + var(--safe-b));
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    box-shadow: 0 6px 18px rgba(179,18,28,0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 30;
+}
+
+/* ===== Empty / loading states ===== */
+.state-msg {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 40px 20px;
+}
+
+/* ===== Bottom sheet modal (used for forms) ===== */
+.sheet-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(20,20,20,0.5);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+}
+
+.sheet-overlay.open { display: flex; }
+
+.sheet {
+    background: var(--card);
+    width: 100%;
+    max-width: 720px;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 20px 20px 0 0;
+    padding: 20px 18px calc(24px + var(--safe-b));
+}
+
+.sheet-handle {
+    width: 40px;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 0 auto 14px;
+}
+
+.sheet h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    margin-bottom: 16px;
+}
+
+.form-group { margin-bottom: 14px; }
+
+.form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    background: #faf7f0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 11px 12px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    color: var(--ink);
+}
+
+.form-group textarea { resize: vertical; min-height: 70px; }
+
+.form-row { display: flex; gap: 10px; }
+.form-row .form-group { flex: 1; }
+
+.image-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.image-picker .thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    position: relative;
+}
+
+.image-picker .thumb-wrap { position: relative; }
+
+.image-picker .remove-thumb {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--red);
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.image-picker .add-thumb {
+    width: 64px;
+    height: 64px;
+    border-radius: 10px;
+    border: 1.5px dashed var(--border);
+    background: #faf7f0;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    cursor: pointer;
+}
+
+.sheet-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.btn.primary { background: var(--red); color: #fff; }
+.btn.primary:active { background: var(--red-dark); }
+.btn.secondary { background: #faf7f0; color: var(--ink); border: 1px solid var(--border); }
+.btn.danger { background: #fbe6e6; color: var(--red); border: 1px solid rgba(179,18,28,0.2); }
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(24px + var(--safe-b));
+    transform: translateX(-50%) translateY(20px);
+    background: var(--ink);
+    color: #fff;
+    padding: 11px 18px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 90%;
+    text-align: center;
+}
+
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+
+        /* page-specific */
+        .stock-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stock-controls button {
+            width: 28px; height: 28px;
+            border-radius: 7px;
+            border: 1px solid var(--border);
+            background: #faf7f0;
+            font-size: 0.95rem;
+            cursor: pointer;
+        }
+        .stock-controls input {
+            width: 46px;
+            text-align: center;
+            border: 1px solid var(--border);
+            border-radius: 7px;
+            padding: 5px 2px;
+            font-size: 0.85rem;
+            font-family: inherit;
+        }
+</style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <a href="/admin/dashboard" class="back-btn">&#8592;</a>
+        <h1>Inventory</h1>
+    </header>
+
+    <main class="admin-content">
+        <div class="toolbar">
+            <input type="text" id="searchInput" placeholder="Search product or SKU…" />
+        </div>
+        <div class="toolbar">
+            <select id="lowStockFilter">
+                <option value="false">All stock levels</option>
+                <option value="true">Low stock only</option>
+            </select>
+        </div>
+
+        <div id="list"></div>
+    </main>
+
+    <script>
+// admin-shared.js — tiny helpers shared by products.html, categories.html,
+// orders.html, inventory.html. Load this before each page's own script.
+
+function showToast(message) {
+    let toast = document.getElementById('toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'toast';
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    clearTimeout(toast._hideTimer);
+    toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+// Wraps fetch to the /admin/api/* JSON endpoints, always sending cookies.
+async function adminFetch(url, options = {}) {
+    const res = await fetch(url, { credentials: 'include', ...options });
+    let body;
+    try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+
+    if (res.status === 401 || res.status === 403) {
+        showToast(body.message || 'Session expired — please log in again');
+        setTimeout(() => (window.location.href = '/login'), 1200);
+        throw new Error(body.message || 'Unauthorized');
+    }
+    return body;
+}
+
+function openSheet(id) {
+    document.getElementById(id).classList.add('open');
+}
+
+function closeSheet(id) {
+    document.getElementById(id).classList.remove('open');
+}
+
+function debounce(fn, delay = 350) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), delay);
+    };
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+    </script>
+    <script>
+        const API = '/admin/api/inventory';
+
+        async function loadInventory() {
+            document.getElementById('list').innerHTML = '<p class="state-msg">Loading…</p>';
+
+            const params = new URLSearchParams({
+                search: document.getElementById('searchInput').value.trim(),
+                low_stock_only: document.getElementById('lowStockFilter').value,
+            });
+
+            const res = await adminFetch(`${API}?${params}`);
+            if (!res.success) return showToast(res.message);
+            render(res.data);
+        }
+
+        function render(items) {
+            const list = document.getElementById('list');
+            if (!items.length) {
+                list.innerHTML = '<p class="state-msg">No matching products.</p>';
+                return;
+            }
+
+            list.innerHTML = items.map(p => `
+                <div class="item-card">
+                    <div class="item-body">
+                        <div class="item-title">${escapeHtml(p.product_name)}</div>
+                        <div class="item-sub">
+                            ${p.sku ? escapeHtml(p.sku) + ' · ' : ''}${escapeHtml(p.category_name)}
+                            ${p.is_low_stock ? '<span class="badge low-stock">Low stock</span>' : '<span class="badge in-stock">OK</span>'}
+                        </div>
+                    </div>
+                    <div class="stock-controls">
+                        <button onclick="adjust(${p.product_id}, -1)">−</button>
+                        <input type="number" id="stock-${p.product_id}" value="${p.stock}"
+                               onchange="setStock(${p.product_id}, this.value)" />
+                        <button onclick="adjust(${p.product_id}, 1)">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function adjust(productId, delta) {
+            const res = await adminFetch(`${API}/${productId}/adjust`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ delta }),
+            });
+            if (res.success) {
+                document.getElementById(`stock-${productId}`).value = res.data.stock;
+            } else {
+                showToast(res.message);
+            }
+        }
+
+        async function setStock(productId, value) {
+            const stock = Number(value);
+            if (Number.isNaN(stock) || stock < 0) return showToast('Enter a valid stock number');
+
+            const res = await adminFetch(`${API}/${productId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stock }),
+            });
+            showToast(res.message);
+            if (res.success) loadInventory();
+        }
+
+        document.getElementById('searchInput').addEventListener('input', debounce(loadInventory));
+        document.getElementById('lowStockFilter').addEventListener('change', loadInventory);
+
+        loadInventory();
+    </script>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+    <title>Faisalabad Textile Depot - Admin Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet"/>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        :root {
+            --bg: #f6f1e7;
+            --card: #ffffff;
+            --ink: #141414;
+            --muted: #746f66;
+            --border: #e7e0d3;
+            --red: #b3121c;
+            --red-dark: #8c0e16;
+            --red-tint: rgba(179, 18, 28, 0.08);
+            --green: #1e7e34;
+            --amber: #b9791a;
+            --safe-t: env(safe-area-inset-top, 0px);
+            --safe-b: env(safe-area-inset-bottom, 0px);
+        }
+
+        html, body { height: 100%; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background:
+                radial-gradient(1200px 400px at 15% -10%, rgba(179,18,28,0.06), transparent 60%),
+                radial-gradient(900px 400px at 100% 0%, rgba(179,18,28,0.04), transparent 55%),
+                var(--bg);
+            color: var(--ink);
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+        /* ===== Header ===== */
+        .admin-header {
+            background: linear-gradient(155deg, var(--ink) 0%, #221c17 100%);
+            color: #fff;
+            padding: calc(16px + var(--safe-t)) 20px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+        .admin-header::after {
+            content: '';
+            position: absolute;
+            right: -60px; top: -80px;
+            width: 220px; height: 220px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(179,18,28,0.35), transparent 70%);
+            pointer-events: none;
+        }
+
+        .admin-brand { display: flex; align-items: center; gap: 10px; position: relative; z-index: 1; }
+
+        .brand-mark {
+            width: auto;          /* was 30px */
+            min-width: 30px;
+            height: 30px;
+            padding: 0 8px;       /* gives 3-letter text breathing room */
+            border-radius: 7px;
+            background: var(--red);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-mark span {
+            color: #fff;
+            font-family: 'Playfair Display', serif;
+            font-weight: 800;
+            font-size: 0.72rem;   /* was 0.95rem — smaller so 3 letters fit */
+            letter-spacing: 0.3px;
+        }
+
+        .admin-brand-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 800; }
+
+        .admin-tag {
+            font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+            color: #ffb3b3; background: rgba(179, 18, 28, 0.25);
+            padding: 4px 9px; border-radius: 999px;
+        }
+
+        .header-right { display: flex; align-items: center; gap: 16px; position: relative; z-index: 1; }
+
+        .live-pill {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 0.68rem; font-weight: 700; color: #b7e3c2;
+            background: rgba(30, 126, 52, 0.18);
+            border: 1px solid rgba(30, 126, 52, 0.35);
+            padding: 5px 10px; border-radius: 999px;
+        }
+        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: #3fce6b; box-shadow: 0 0 0 0 rgba(63,206,107,0.6); animation: pulseDot 2s infinite; }
+        @keyframes pulseDot {
+            0% { box-shadow: 0 0 0 0 rgba(63,206,107,0.55); }
+            70% { box-shadow: 0 0 0 6px rgba(63,206,107,0); }
+            100% { box-shadow: 0 0 0 0 rgba(63,206,107,0); }
+        }
+
+        .logout-link { color: #b8b3a8; font-size: 0.85rem; font-weight: 600; text-decoration: none; padding: 8px; }
+        .logout-link:hover { color: #fff; }
+
+        /* ===== Content shell ===== */
+        .admin-content { flex: 1; padding: 22px 20px calc(28px + var(--safe-b)); max-width: 1100px; width: 100%; margin: 0 auto; }
+
+        .welcome { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .welcome h1 { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 800; }
+        .welcome p { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+        .refresh-btn {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: var(--card); border: 1px solid var(--border); border-radius: 9px;
+            padding: 8px 13px; font-size: 0.78rem; font-weight: 700; color: var(--ink);
+            font-family: inherit; cursor: pointer; flex-shrink: 0;
+        }
+        .refresh-btn:active { transform: scale(0.97); }
+        .refresh-btn svg { width: 14px; height: 14px; transition: transform 0.5s ease; }
+        .refresh-btn.spinning svg { transform: rotate(360deg); }
+
+        /* ===== Stat card grid — every card is the same fixed height ===== */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+        }
+        @media (min-width: 640px)  { .options-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 960px)  { .options-grid { grid-template-columns: repeat(4, 1fr); } }
+
+        .stat-card {
+            position: relative;
+            height: 182px;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px 16px 14px;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none;
+            color: inherit;
+            overflow: hidden;
+            box-shadow: 0 1px 2px rgba(20,20,20,0.03);
+            transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+        }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--red), #e0555d 60%, transparent);
+            opacity: 0.9;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 24px rgba(20,20,20,0.08);
+            border-color: rgba(179,18,28,0.22);
+        }
+        .stat-card:active { transform: translateY(-1px) scale(0.99); }
+
+        .stat-card.disabled {
+            pointer-events: none;
+            color: var(--muted);
+        }
+        .stat-card.disabled::before { background: var(--border); }
+        .stat-card.disabled .icon-badge { background: #f1ede2; color: var(--muted); box-shadow: none; }
+
+        .soon-ribbon {
+            position: absolute; top: 12px; right: -30px;
+            width: 110px; text-align: center;
+            background: var(--ink); color: #fff;
+            font-size: 0.56rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+            padding: 3px 0; transform: rotate(35deg);
+            opacity: 0.85;
+        }
+
+        .card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+
+        .icon-badge {
+            width: 38px; height: 38px; border-radius: 11px;
+            background: linear-gradient(155deg, #fff, #faf2ee);
+            border: 1px solid rgba(179,18,28,0.14);
+            display: flex; align-items: center; justify-content: center;
+            color: var(--red); flex-shrink: 0;
+            box-shadow: 0 3px 10px rgba(179,18,28,0.1);
+        }
+        .icon-badge svg { width: 19px; height: 19px; }
+
+        .card-heading { min-width: 0; padding-top: 1px; }
+        .card-title-row { display: flex; align-items: center; gap: 6px; }
+        .card-title { font-size: 0.87rem; font-weight: 700; line-height: 1.2; }
+        .card-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
+
+        .attn-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: var(--amber); flex-shrink: 0;
+            box-shadow: 0 0 0 0 rgba(185,121,26,0.55);
+            animation: pulseAmber 1.8s infinite;
+        }
+        @keyframes pulseAmber {
+            0% { box-shadow: 0 0 0 0 rgba(185,121,26,0.5); }
+            70% { box-shadow: 0 0 0 5px rgba(185,121,26,0); }
+            100% { box-shadow: 0 0 0 0 rgba(185,121,26,0); }
+        }
+
+        .card-main { margin-top: auto; }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', ui-monospace, monospace;
+            font-size: 1.7rem; font-weight: 700; line-height: 1;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+        }
+        .stat-value.shimmer {
+            color: transparent;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #ece6d8 25%, #f6f1e7 50%, #ece6d8 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.3s infinite;
+            display: inline-block;
+            width: 46px;
+        }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+        .stat-sub { font-size: 0.72rem; color: var(--muted); margin-top: 4px; }
+        .stat-sub strong { color: var(--ink); font-weight: 700; }
+
+        .mini-bar {
+            margin-top: 9px;
+            height: 5px; border-radius: 999px; background: var(--red-tint);
+            overflow: hidden;
+        }
+        .mini-bar-fill {
+            height: 100%; border-radius: 999px;
+            background: linear-gradient(90deg, var(--green), #45a862);
+            width: 0%;
+            transition: width 0.6s ease;
+        }
+        .mini-bar-fill.warn { background: linear-gradient(90deg, var(--amber), #d99a35); }
+
+        .state-error { color: var(--red); font-size: 0.68rem; margin-top: 4px; }
+
+        .toast {
+            position: fixed; left: 50%; bottom: calc(24px + var(--safe-b));
+            transform: translateX(-50%) translateY(20px);
+            background: var(--ink); color: #fff;
+            padding: 11px 18px; border-radius: 10px; font-size: 0.82rem;
+            opacity: 0; transition: opacity 0.2s, transform 0.2s;
+            z-index: 200; pointer-events: none; max-width: 90%; text-align: center;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+
+    <header class="admin-header">
+        <div class="admin-brand">
+            <div class="brand-mark"><span>FTD</span></div>
+            <span class="admin-brand-name">Faisalabad Textile Depot</span>
+            <span class="admin-tag">Admin</span>
+        </div>
+        <div class="header-right">
+            <span class="live-pill"><span class="live-dot"></span>Live</span>
+            <a href="/" class="logout-link">Log out</a>
+        </div>
+    </header>
+
+    <main class="admin-content">
+        <div class="welcome">
+            <div>
+                <h1>Admin dashboard</h1>
+                <p>A live snapshot of your store, updated on every visit.</p>
+            </div>
+            <button type="button" class="refresh-btn" id="refreshBtn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                Refresh
+            </button>
+        </div>
+
+        <div class="options-grid" id="grid">
+
+            <!-- Orders -->
+            <a href="/admin/orders" class="stat-card" id="card-orders">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3H5a2 2 0 0 0-2 2v16l4-4h13a2 2 0 0 0 2-2V9"/><path d="M18 2l3 3-8.5 8.5-3.5 1 1-3.5L18 2z"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row">
+                            <span class="card-title">Orders</span>
+                            <span class="attn-dot" id="orders-attn" style="display:none;"></span>
+                        </div>
+                        <div class="card-desc">Track &amp; fulfill</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-orders-pending">—</span>
+                    <div class="stat-sub" id="stat-orders-sub">Pending orders</div>
+                </div>
+            </a>
+
+            <!-- Products -->
+            <a href="/admin/products" class="stat-card" id="card-products">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row"><span class="card-title">Products</span></div>
+                        <div class="card-desc">Manage catalog</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-products-total">—</span>
+                    <div class="stat-sub" id="stat-products-sub">Total items</div>
+                </div>
+            </a>
+
+            <!-- Inventory -->
+            <a href="/admin/inventory" class="stat-card" id="card-inventory">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row">
+                            <span class="card-title">Inventory</span>
+                            <span class="attn-dot" id="inventory-attn" style="display:none;"></span>
+                        </div>
+                        <div class="card-desc">Stock levels</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-inventory-ok">—</span>
+                    <div class="stat-sub" id="stat-inventory-sub">In healthy stock</div>
+                    <div class="mini-bar"><div class="mini-bar-fill" id="stat-inventory-bar"></div></div>
+                </div>
+            </a>
+
+            <!-- Categories -->
+            <a href="/admin/categories" class="stat-card" id="card-categories">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l5.59-5.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row"><span class="card-title">Categories</span></div>
+                        <div class="card-desc">Men / Women</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-categories-total">—</span>
+                    <div class="stat-sub" id="stat-categories-sub">Categories live</div>
+                </div>
+            </a>
+
+            <!-- Homepage Slider -->
+            <a href="/admin/slider" class="stat-card" id="card-slider">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row"><span class="card-title">Homepage Slider</span></div>
+                        <div class="card-desc">About Us carousel</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-slider-active">—</span>
+                    <div class="stat-sub" id="stat-slider-sub">Live slides</div>
+                </div>
+            </a>
+
+            <!-- Users -->
+            <a href="/admin/users" class="stat-card" id="card-users">
+                <div class="card-top">
+                    <div class="icon-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                    <div class="card-heading">
+                        <div class="card-title-row"><span class="card-title">Users</span></div>
+                        <div class="card-desc">Customer accounts</div>
+                    </div>
+                </div>
+                <div class="card-main">
+                    <span class="stat-value shimmer" id="stat-users-total">—</span>
+                    <div class="stat-sub" id="stat-users-sub">Registered accounts</div>
+                </div>
+            </a>
+
+        </div>
+    </main>
+
+    <script>
+        function showToast(message) {
+            let toast = document.getElementById('toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'toast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toast._hideTimer);
+            toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+
+        async function adminFetch(url) {
+            try {
+                const res = await fetch(url, { credentials: 'include' });
+                let body;
+                try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
+
+                if (res.status === 401 || res.status === 403) {
+                    showToast(body.message || 'Session expired — please log in again');
+                    setTimeout(() => (window.location.href = '/login'), 1200);
+                    return null;
+                }
+                return body;
+            } catch {
+                return { success: false, message: 'Network error', data: null };
+            }
+        }
+
+        // Counts up from 0 to target so the numbers feel alive on load,
+        // then stamps in the exact value (no rounding drift).
+        function animateValue(el, target, duration = 550) {
+            el.classList.remove('shimmer');
+            const start = 0;
+            const startTime = performance.now();
+            function step(now) {
+                const progress = Math.min((now - startTime) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.round(start + (target - start) * eased);
+                if (progress < 1) requestAnimationFrame(step);
+                else el.textContent = target;
+            }
+            requestAnimationFrame(step);
+        }
+
+        function setError(subEl) {
+            subEl.textContent = 'Could not load';
+            subEl.classList.add('state-error');
+        }
+
+        // ----- Orders -----
+        async function loadOrders() {
+            const valueEl = document.getElementById('stat-orders-pending');
+            const subEl = document.getElementById('stat-orders-sub');
+            const attnEl = document.getElementById('orders-attn');
+
+            const [allRes, pendingRes] = await Promise.all([
+                adminFetch('/admin/api/orders?limit=1'),
+                adminFetch('/admin/api/orders?status=PENDING&limit=1'),
+            ]);
+
+            if (!allRes || !allRes.success || !pendingRes || !pendingRes.success) return setError(subEl);
+
+            const total = allRes.data.pagination.total;
+            const pending = pendingRes.data.pagination.total;
+
+            animateValue(valueEl, pending);
+            subEl.textContent = `Pending · ${total} total order${total === 1 ? '' : 's'}`;
+            attnEl.style.display = pending > 0 ? 'inline-block' : 'none';
+        }
+
+        // ----- Categories -----
+        async function loadCategories() {
+            const valueEl = document.getElementById('stat-categories-total');
+            const subEl = document.getElementById('stat-categories-sub');
+
+            const res = await adminFetch('/admin/api/categories');
+            if (!res || !res.success) return setError(subEl);
+
+            const rows = res.data;
+            const men = rows.filter(c => c.gender === 'MEN').length;
+            const women = rows.filter(c => c.gender === 'WOMEN').length;
+
+            animateValue(valueEl, rows.length);
+            subEl.textContent = `${men} Men · ${women} Women`;
+        }
+
+        // ----- Slider -----
+        async function loadSlider() {
+            const valueEl = document.getElementById('stat-slider-active');
+            const subEl = document.getElementById('stat-slider-sub');
+
+            const res = await adminFetch('/admin/api/slider');
+            if (!res || !res.success) return setError(subEl);
+
+            const rows = res.data;
+            const active = rows.filter(s => !!s.is_active).length;
+
+            animateValue(valueEl, active);
+            subEl.textContent = `Live · ${rows.length} total slide${rows.length === 1 ? '' : 's'}`;
+        }
+
+        // ----- Inventory (also feeds the Products card's out-of-stock note) -----
+        async function loadInventoryAndProducts() {
+            const invValueEl = document.getElementById('stat-inventory-ok');
+            const invSubEl = document.getElementById('stat-inventory-sub');
+            const invBarEl = document.getElementById('stat-inventory-bar');
+            const invAttnEl = document.getElementById('inventory-attn');
+
+            const prodValueEl = document.getElementById('stat-products-total');
+            const prodSubEl = document.getElementById('stat-products-sub');
+
+            const [invRes, prodRes] = await Promise.all([
+                adminFetch('/admin/api/inventory'),
+                adminFetch('/admin/api/products?limit=1'),
+            ]);
+
+            if (invRes && invRes.success) {
+                const rows = invRes.data;
+                const total = rows.length;
+                const low = rows.filter(r => !!r.is_low_stock).length;
+                const outOfStock = rows.filter(r => Number(r.stock) === 0).length;
+                const ok = total - low;
+                const okPct = total ? Math.round((ok / total) * 100) : 0;
+
+                animateValue(invValueEl, ok);
+                invSubEl.textContent = total
+                    ? `In stock · ${low} low${outOfStock ? `, ${outOfStock} out` : ''}`
+                    : 'No products yet';
+                invBarEl.style.width = `${okPct}%`;
+                invBarEl.classList.toggle('warn', okPct < 70);
+                invAttnEl.style.display = low > 0 ? 'inline-block' : 'none';
+            } else {
+                setError(invSubEl);
+            }
+
+            if (prodRes && prodRes.success) {
+                const total = prodRes.data.pagination.total;
+                animateValue(prodValueEl, total);
+                prodSubEl.textContent = 'Total items';
+            } else {
+                setError(prodSubEl);
+            }
+        }
+
+        // ----- Users -----
+        async function loadUsers() {
+            const valueEl = document.getElementById('stat-users-total');
+            const subEl = document.getElementById('stat-users-sub');
+
+            const res = await adminFetch('/admin/api/users?limit=1');
+            if (!res || !res.success) return setError(subEl);
+
+            const total = res.data.pagination.total;
+            animateValue(valueEl, total);
+            subEl.textContent = 'Registered accounts';
+        }
+
+        function resetShimmer() {
+            document.querySelectorAll('.stat-value').forEach(el => {
+                if (el.closest('.stat-card.disabled')) return;
+                el.textContent = '';
+                el.classList.add('shimmer');
+            });
+        }
+
+        async function loadAll() {
+            await Promise.all([
+                loadOrders(),
+                loadCategories(),
+                loadSlider(),
+                loadInventoryAndProducts(),
+                loadUsers(),
+            ]);
+        }
+
+        document.getElementById('refreshBtn').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            btn.classList.add('spinning');
+            resetShimmer();
+            await loadAll();
+            setTimeout(() => btn.classList.remove('spinning'), 500);
+        });
+
+        loadAll();
+    </script>
+
+</body>
+</html>
