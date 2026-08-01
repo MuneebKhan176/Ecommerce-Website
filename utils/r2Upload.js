@@ -26,7 +26,7 @@ const path = require('path');
 // on disk, so it works no matter what directory you launch the server
 // from. (This was the bug — "../routes/.env" was resolving to a
 // nonexistent folder one level ABOVE your project root.)
-require('dotenv').config({ path: path.resolve(__dirname, '../routes/.env') });
+require('dotenv').config();
 
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const { v4: uuidv4 } = require('uuid');

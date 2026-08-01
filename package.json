@@ -4,7 +4,8 @@
   "description": "Login/Register + Auth backend for the Bin-Sarfraz clothing e-commerce site",
   "main": "server.js",
   "scripts": {
-    "web": "nodemon web.js",
+    "web": "nodemon server.js",
+    "start": "node server.js",
     "seed:admins": "nodemon seedAdmins.js",
     "admin": "node utils/seedadmins"
   },

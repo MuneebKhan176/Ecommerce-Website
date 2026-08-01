@@ -6,7 +6,7 @@
 // Set ADMIN1_USER/ADMIN1_PASS, ADMIN2_USER/ADMIN2_PASS, ADMIN3_USER/ADMIN3_PASS
 // in your .env file before running.
 
-require('dotenv').config({ path: '../routes/.env' });
+require('dotenv').config();
 
 const bcrypt = require('bcryptjs');
 const { conn } = require('../db_connection');
