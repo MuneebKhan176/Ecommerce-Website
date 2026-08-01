@@ -1,10 +1,11 @@
-require('dotenv').config()
+require('dotenv').config();
 
-const path= require('path')
-
-
+const path = require('path');
 const express = require('express');
 const cookieParser = require('cookie-parser');
+
+// Import Database Initializer from Database directory
+const initDatabase = require('./Database/initDB');
 
 const { verifyToken } = require('./middle/authMiddleware');
 
@@ -29,7 +30,6 @@ const userOrderRoutes = require('./routes/User_Routes/userOrderRoutes');
 const app = express();
 
 // Railway will provide PORT automatically.
-// If not available, use 3000.
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -87,7 +87,13 @@ app.use((err, req, res, next) => {
     });
 });
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-});
+// Initialize DB schema before listening for incoming connections
+initDatabase()
+    .then(() => {
+        app.listen(PORT, '0.0.0.0', () => {
+            console.log(`🚀 Server running on port ${PORT}`);
+        });
+    })
+    .catch((err) => {
+        console.error('💥 Database initialization failed. Server startup aborted:', err);
+    });

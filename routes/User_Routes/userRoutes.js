@@ -4,7 +4,7 @@
 
 const express = require('express');
 const router = express.Router();
-const { conn } = require('../../db_connection');
+const { conn } = require('../../Database/db_connection');
 const { verifyToken } = require('../../middle/authMiddleware');
 
 function sendResponse(res, statusCode, success, message, data = null) {

@@ -18,7 +18,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { conn } = require('../../db_connection');
+const { conn } = require('../../Database/db_connection');
 const { requireAdmin } = require('../../middle/adminAuth');
 
 function sendResponse(res, statusCode, success, message, data = null) {

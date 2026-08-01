@@ -4,7 +4,7 @@ const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const { conn, jwtSecret } = require('../db_connection');
+const { conn, jwtSecret } = require('../Database/db_connection');
 const { verifyToken } = require('../middle/authMiddleware');
 const sendVerificationEmail = require('../mailer');
 

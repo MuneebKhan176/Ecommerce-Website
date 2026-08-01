@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { jwtSecret } = require('../db_connection');
+const { jwtSecret } = require('../Database/db_connection');
 
 // Verifies any logged-in user (either role: 'user' or role: 'admin')
 function verifyToken(req, res, next) {
