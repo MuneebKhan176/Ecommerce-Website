@@ -7,7 +7,6 @@ const cookieParser = require('cookie-parser');
 // Import Database Initializer from Database directory
 const initDatabase = require('./Database/initDB');
 const seedAdmins = require('./utils/seedAdmins');
-const runMigrations = require('./Database/runMigrations');
 
 const { verifyToken } = require('./middle/authMiddleware');
 
@@ -89,13 +88,10 @@ app.use((err, req, res, next) => {
     });
 });
 
-runMigrations();
-
 // Initialize DB schema before listening for incoming connections
 // Initialize DB schema before listening for incoming connections
 
 initDatabase()
-    .then(() => runMigrations())
     .then(() => seedAdmins())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
