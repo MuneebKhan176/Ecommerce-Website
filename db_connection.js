@@ -8,9 +8,17 @@ const {
     DB_NAME
 } = process.env;
 
+
 const jwtSecret = process.env.JWT_SECRET_KEY;
 
 const mysql = require('mysql2');
+
+console.log({
+    DB_HOST,
+    DB_PORT,
+    DB_USERNAME,
+    DB_NAME
+});
 
 const pool = mysql.createPool({
     host: DB_HOST,
