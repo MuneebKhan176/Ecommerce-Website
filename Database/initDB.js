@@ -11,7 +11,6 @@ async function initDatabase() {
         // Run multi-statement query
         await conn.promise().query(schemaSql);
         
-        console.log('✅ Database schema verified / initialized successfully.');
     } catch (error) {
         console.error('❌ Database initialization error:', error.message);
         throw error;

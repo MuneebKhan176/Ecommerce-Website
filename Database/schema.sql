@@ -1,5 +1,5 @@
 -- ============================================================
--- CLOTHING E-COMMERCE DATABASE SCHEMA (SAFE FOR PRODUCTION)
+-- CLOTHING E-COMMERCE DATABASE SCHEMA (UPDATED BASELINE)
 -- ============================================================
 
 -- 1. USERS
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS payments (
         ON DELETE CASCADE
 );
 
--- 9. PENDING USERS
+-- 9. PENDING USERS (UPDATED WITH RATE-LIMITING COLUMNS)
 CREATE TABLE IF NOT EXISTS pending_users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     full_name VARCHAR(100) NOT NULL,
@@ -133,10 +133,22 @@ CREATE TABLE IF NOT EXISTS pending_users (
     password_hash VARCHAR(255) NOT NULL,
     verification_code VARCHAR(10) NOT NULL,
     expires_at DATETIME NOT NULL,
+    last_sent_at DATETIME NULL,
+    send_count INT NOT NULL DEFAULT 0,
+    window_start_at DATETIME NULL,
+    ip_address VARCHAR(45) NULL,
+    is_sending TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10. ADMINS
+-- 10. IP RATE LIMITS (NEW TABLE)
+CREATE TABLE IF NOT EXISTS ip_rate_limits (
+    ip_address VARCHAR(45) PRIMARY KEY,
+    request_count INT NOT NULL DEFAULT 0,
+    window_start_at DATETIME NOT NULL
+);
+
+-- 11. ADMINS
 CREATE TABLE IF NOT EXISTS admins (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -148,7 +160,7 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 11. HOMEPAGE SLIDERS
+-- 12. HOMEPAGE SLIDERS
 CREATE TABLE IF NOT EXISTS homepage_sliders (
     slider_id INT AUTO_INCREMENT PRIMARY KEY,
     cloud_key VARCHAR(500) NOT NULL,
@@ -158,7 +170,7 @@ CREATE TABLE IF NOT EXISTS homepage_sliders (
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. CART ITEMS
+-- 13. CART ITEMS
 CREATE TABLE IF NOT EXISTS cart_items (
     cart_item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,

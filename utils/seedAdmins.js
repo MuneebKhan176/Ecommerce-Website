@@ -26,7 +26,6 @@ async function seedAdmins() {
                 [admin.username, passwordHash, admin.role]
             );
 
-            console.log(`✅ Seeded admin: ${admin.username} (${admin.role})`);
         } catch (err) {
             console.error(`❌ Failed to seed admin ${admin.username}:`, err.message);
         }

@@ -12,14 +12,6 @@ const DB_NAME = process.env.MYSQLDATABASE;
 const jwtSecret = process.env.JWT_SECRET_KEY;
 
 // Log values to verify on startup
-console.log({
-    DB_HOST, 
-    DB_PORT,
-    DB_USERNAME,
-    DB_NAME
-});
-
-console.log('Connecting to MySQL database...');
 
 const pool = mysql.createPool({
     host: DB_HOST,
@@ -39,7 +31,6 @@ pool.getConnection((err, connection) => {
         return;
     }
 
-    console.log('✅ MySQL pool connected');
     connection.release();
 });
 
