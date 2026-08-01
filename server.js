@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 
 // Import Database Initializer from Database directory
 const initDatabase = require('./Database/initDB');
+const seedAdmins = require('./utils/seedAdmins');
 
 const { verifyToken } = require('./middle/authMiddleware');
 
@@ -89,6 +90,7 @@ app.use((err, req, res, next) => {
 
 // Initialize DB schema before listening for incoming connections
 initDatabase()
+    .then(() => seedAdmins())
     .then(() => {
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`🚀 Server running on port ${PORT}`);
