@@ -94,9 +94,7 @@ app.use((err, req, res, next) => {
 initDatabase()
     .then(() => seedAdmins())
     .then(() => {
-        app.listen(PORT, '0.0.0.0', () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-        });
+        app.listen(PORT, '0.0.0.0');
     })
     .catch((err) => {
         console.error('💥 Database initialization failed. Server startup aborted:', err);

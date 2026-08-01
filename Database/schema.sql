@@ -1,24 +1,3 @@
--- ============================================================
--- CLOTHING E-COMMERCE DATABASE SCHEMA (SAFE FOR PRODUCTION)
--- ============================================================
-
-SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS cart_items;
-DROP TABLE IF EXISTS homepage_sliders;
-DROP TABLE IF EXISTS admins;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS addresses;
-DROP TABLE IF EXISTS product_media;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS pending_users;
-DROP TABLE IF EXISTS users;
-
-SET FOREIGN_KEY_CHECKS = 1;
-
 -- 1. USERS
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -141,19 +120,8 @@ CREATE TABLE IF NOT EXISTS payments (
         ON DELETE CASCADE
 );
 
--- 9. PENDING USERS
-CREATE TABLE IF NOT EXISTS pending_users (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    phone VARCHAR(30),
-    password_hash VARCHAR(255) NOT NULL,
-    verification_code VARCHAR(10) NOT NULL,
-    expires_at DATETIME NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
--- 10. ADMINS
+-- 9. ADMINS
 CREATE TABLE IF NOT EXISTS admins (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -165,7 +133,7 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 11. HOMEPAGE SLIDERS
+-- 10. HOMEPAGE SLIDERS
 CREATE TABLE IF NOT EXISTS homepage_sliders (
     slider_id INT AUTO_INCREMENT PRIMARY KEY,
     cloud_key VARCHAR(500) NOT NULL,
@@ -175,7 +143,7 @@ CREATE TABLE IF NOT EXISTS homepage_sliders (
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 12. CART ITEMS
+-- 11. CART ITEMS
 CREATE TABLE IF NOT EXISTS cart_items (
     cart_item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
