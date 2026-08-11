@@ -99,6 +99,16 @@ body {
 
 .filter-row input:focus { outline: 2px solid var(--red); outline-offset: -1px; }
 
+/* Small heads-up about what the combined sequence means, shown above
+   the grid so admins understand why order looks a certain way when
+   switching the gender tab. */
+.order-hint {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
 /* ===== Row: gender tabs (left) + Add Category button (right) ===== */
 .tabs-row {
     display: flex;
@@ -210,6 +220,20 @@ body {
     border-radius: 999px;
 }
 
+/* Combined-sequence position badge, top-left, so it's visually clear
+   that this number is shared across both genders. */
+.category-order-badge {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(20,20,20,0.78);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 999px;
+}
+
 /* Body — the ONLY bordered part, red-themed, rounded bottom corners,
    seamlessly continuing from the header */
 .category-card-body {
@@ -252,12 +276,14 @@ body {
 .category-actions {
     margin-top: auto;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     padding-top: 6px;
 }
 
 .category-actions .icon-btn {
     flex: 1;
+    min-width: 60px;
     height: 32px;
     border-radius: 7px;
     border: 1px solid var(--border);
@@ -272,6 +298,34 @@ body {
 }
 
 .category-actions .icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+/* Up/down reorder buttons — compact, icon-only, sit in their own row
+   above Edit/Delete so the row doesn't get cramped on narrow cards. */
+.category-actions .move-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+}
+
+.category-actions .move-btn {
+    flex: 1;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.category-actions .move-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
 
 /* ===== Empty / loading states ===== */
 .state-msg {
@@ -415,6 +469,12 @@ body {
             <input type="text" id="searchInput" placeholder="Search categories…" />
         </div>
 
+        <p class="order-hint">
+            The number badge on each card is its position in one combined display order
+            shared by Men and Women categories together. Use ▲ ▼ to move a category earlier
+            or later — it works the same no matter which tab you're viewing.
+        </p>
+
         <div class="tabs-row">
             <div class="gender-tabs">
                 <button type="button" class="gender-tab active" data-gender="">All</button>
@@ -501,6 +561,12 @@ body {
 
         // ---------- page logic ----------
         const API = '/admin/api/categories';
+
+        // `categories` always holds the FULL list from the server, already
+        // sorted by the combined display_order (see adminCategoryRoutes.js).
+        // The gender tab only changes what's *displayed*; the underlying
+        // combined sequence and the up/down neighbors are always computed
+        // against this full array, not the filtered one.
         let categories = [];
         let listGender = '';
         let formGender = '';
@@ -540,9 +606,19 @@ body {
                 return;
             }
 
-            grid.innerHTML = filtered.map(c => `
+            grid.innerHTML = filtered.map((c, displayIdx) => {
+                // Position badge + up/down enable state are based on the
+                // FULL combined list (categories), not the filtered/displayed
+                // one, since the sequence is shared across genders.
+                const fullIndex = categories.findIndex(x => x.category_id === c.category_id);
+                const isFirst = fullIndex === 0;
+                const isLast = fullIndex === categories.length - 1;
+                const position = fullIndex + 1;
+
+                return `
                 <div class="category-card">
                     <div class="category-card-header gender-${c.gender}">
+                        <span class="category-order-badge">#${position}</span>
                         <span class="initial">${c.gender === 'MEN' ? 'M' : 'W'}</span>
                         <span class="category-count-badge">${c.product_count} product${c.product_count === 1 ? '' : 's'}</span>
                     </div>
@@ -550,12 +626,29 @@ body {
                         <span class="gender-pill">${c.gender}</span>
                         <div class="category-name">${escapeHtml(c.category_name)}</div>
                         <div class="category-actions">
+                            <div class="move-row">
+                                <button class="move-btn" onclick="moveCategory(${c.category_id}, 'up')" ${isFirst ? 'disabled' : ''} title="Move earlier">&#9650;</button>
+                                <button class="move-btn" onclick="moveCategory(${c.category_id}, 'down')" ${isLast ? 'disabled' : ''} title="Move later">&#9660;</button>
+                            </div>
                             <button class="icon-btn" onclick="editCategory(${c.category_id})">Edit</button>
                             <button class="icon-btn danger" onclick="deleteCategory(${c.category_id}, ${c.product_count})">Delete</button>
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `;
+            }).join('');
+        }
+
+        // ----- reorder (combined sequence, across both genders) -----
+        async function moveCategory(id, direction) {
+            const res = await adminFetch(`${API}/${id}/move`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ direction }),
+            });
+            if (!res.success) return showToast(res.message);
+            if (res.data && res.data.moved === false) return showToast(res.message);
+            loadCategories();
         }
 
         // ----- Add/Edit form -----

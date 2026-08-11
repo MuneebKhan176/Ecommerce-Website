@@ -1,3 +1,10 @@
+// server.js
+//
+// Entry point. Guest-checkout storefront — no customer accounts anywhere
+// in this app. The homepage is the entire customer experience: browse,
+// add to cart (client-side, localStorage via Frontend/assets/js/cart.js),
+// and check out with no login. Only admins authenticate, via authRoutes.js.
+
 require('dotenv').config();
 
 const path = require('path');
@@ -8,11 +15,11 @@ const cookieParser = require('cookie-parser');
 const initDatabase = require('./Database/initDB');
 const seedAdmins = require('./utils/seedAdmins');
 
-const { verifyToken } = require('./middle/authMiddleware');
-
 const homeRoutes = require('./routes/homeRoutes');
-const authRoutes = require('./routes/authRoutes');
-const storeFrontRoutes = require('./routes/storeFrontRoutes');
+const authRoutes = require('./routes/authRoutes');             // admin-only now
+const storeFrontRoutes = require('./routes/storeFrontRoutes'); // public catalog — covers everything the old userCatalogRoutes did
+const orderRoutes = require('./routes/orderRoutes');           // guest checkout, replaces User_Routes/userOrderRoutes.js
+const reviewRoutes = require('./routes/reviewRoutes');         // public product reviews & ratings
 
 // Admin routes
 const adminViewRoutes = require('./routes/Admin_Routes/adminViewRoutes');
@@ -20,13 +27,15 @@ const adminStockRoutes = require('./routes/Admin_Routes/adminStockRoutes');
 const adminCategoryRoutes = require('./routes/Admin_Routes/adminCategoryRoutes');
 const adminOrderRoutes = require('./routes/Admin_Routes/adminOrderRoutes');
 const adminSliderRoutes = require('./routes/Admin_Routes/adminSliderRoutes');
-const adminUserRoutes = require('./routes/Admin_Routes/adminUserRoutes');
 
-// User routes
-const userRoutes = require('./routes/User_Routes/userRoutes');
-const userCatalogRoutes = require('./routes/User_Routes/userCatalogRoutes');
-const cartRoutes = require('./routes/User_Routes/cartRoutes');
-const userOrderRoutes = require('./routes/User_Routes/userOrderRoutes');
+// NOTE: adminUserRoutes is gone — there are no customer accounts left to
+// list/manage, so that route file (and its require here) is deleted.
+
+// NOTE: the entire User_Routes/ folder (userRoutes.js, userCatalogRoutes.js,
+// cartRoutes.js, userOrderRoutes.js, checkout.js) is deleted. The cart now
+// lives client-side in localStorage (Frontend/assets/js/cart.js) and
+// checkout posts straight to the new orderRoutes.js — no account, no
+// server-side cart table, no /api/user/profile, no /api/cart/*.
 
 const app = express();
 
@@ -45,11 +54,8 @@ app.use('/', homeRoutes);
 app.use('/', authRoutes);
 
 app.use('/api', storeFrontRoutes);
-
-app.use('/api', userRoutes);
-app.use('/api', userCatalogRoutes);
-app.use('/api', cartRoutes);
-app.use('/api', userOrderRoutes);
+app.use('/api', orderRoutes);
+app.use('/api', reviewRoutes);
 
 app.use('/admin', adminViewRoutes);
 
@@ -57,20 +63,30 @@ app.use('/admin/api', adminStockRoutes);
 app.use('/admin/api', adminCategoryRoutes);
 app.use('/admin/api', adminOrderRoutes);
 app.use('/admin/api', adminSliderRoutes);
-app.use('/admin/api', adminUserRoutes);
 
-// Protected pages
-app.get('/user-cart', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'Frontend/User_UI/user-cart.html'));
-});
-
-app.get('/user-order', verifyToken, (req, res) => {
-    res.sendFile(path.join(__dirname, 'Frontend/User_UI/user-order.html'));
-});
-
-app.get('/checkout', verifyToken, (req, res) => {
+// Checkout page — public. Buying no longer requires an account, so
+// there's no verifyToken here. The homepage's Buy Now / Add to Cart
+// buttons route straight here with the selected product(s) already
+// staged in localStorage (see cart.js), and checkout.html's inline
+// script reads that state to build the order.
+app.get('/checkout', (req, res) => {
     res.sendFile(path.join(__dirname, 'Frontend/User_UI/checkout.html'));
 });
+
+// Individual product page — public, matches /api/products/:id which
+// already returns everything the page needs (images, price, stock,
+// description, rating summary, related products) in one call. The id
+// itself is read client-side from the URL path, not passed to the
+// template, so this route just needs to always serve the same file.
+app.get('/product/:id', (req, res) => {
+    res.sendFile(path.join(__dirname, 'Frontend/User_UI/product.html'));
+});
+
+// NOTE: /user-cart and /user-order are gone — there's no account-bound
+// cart page or order-history page anymore. The cart lives on the
+// checkout page itself (order summary with qty steppers / remove), and
+// order status is looked up per-order (order id + phone) via
+// GET /api/orders/:id?phone=... rather than listed per-account.
 
 app.use('/assets', express.static(path.join(__dirname, 'Frontend/assets')));
 
@@ -89,8 +105,6 @@ app.use((err, req, res, next) => {
 });
 
 // Initialize DB schema before listening for incoming connections
-// Initialize DB schema before listening for incoming connections
-
 initDatabase()
     .then(() => seedAdmins())
     .then(() => {

@@ -39,7 +39,6 @@ button { cursor: pointer; font-family: inherit; }
 .card-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 18px; }
 @media (max-width: 480px) { .card-box { padding: 14px; border-radius: 12px; } }
 
-/* order items */
 .order-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
 .order-item:last-child { border-bottom: none; }
 .order-item img { width: 62px; height: 62px; border-radius: 9px; object-fit: cover; background: #efe9db; flex-shrink: 0; }
@@ -49,8 +48,13 @@ button { cursor: pointer; font-family: inherit; }
 .order-item .oi-price { font-size: 0.85rem; font-weight: 800; color: var(--red); }
 .order-item .oi-price .was { font-size: 0.7rem; color: var(--muted); text-decoration: line-through; font-weight: 500; margin-left: 5px; }
 .order-item .oi-line-total { font-size: 0.72rem; color: var(--muted); margin-top: 2px; }
-.order-item .oi-remove { align-self: flex-start; background: none; border: none; color: var(--muted); font-size: 1rem; padding: 4px; }
-.order-item .oi-remove:hover { color: var(--red); }
+.order-item .oi-remove {
+    align-self: flex-start; background: none; border: none; color: var(--muted);
+    padding: 6px; border-radius: 7px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.order-item .oi-remove:hover { color: var(--red); background: var(--red-tint); }
+.order-item .oi-remove svg { width: 16px; height: 16px; }
 .oi-stock { font-size: 0.65rem; color: var(--muted); margin-top: 6px; }
 .oi-stock.low { color: var(--red); font-weight: 700; }
 
@@ -66,7 +70,6 @@ button { cursor: pointer; font-family: inherit; }
 .summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; color: var(--muted); }
 .summary-row.total { font-size: 1rem; font-weight: 800; color: var(--ink); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
 
-/* payment info card */
 .payment-instructions { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 560px) { .payment-methods { grid-template-columns: 1fr; } }
@@ -86,7 +89,6 @@ button { cursor: pointer; font-family: inherit; }
 .copy-icon-btn.copied { color: var(--green); }
 .copy-icon-btn svg { display: block; }
 
-/* form */
 .form-group { margin-bottom: 12px; }
 .form-group label { display: block; font-size: 0.76rem; font-weight: 700; margin-bottom: 5px; color: var(--muted); }
 .req-star { color: var(--red); }
@@ -103,7 +105,6 @@ button { cursor: pointer; font-family: inherit; }
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
 
-/* single-screenshot upload */
 .upload-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .upload-tile { width: 72px; height: 72px; border-radius: 10px; position: relative; overflow: hidden; flex-shrink: 0; }
 .upload-tile.add-tile {
@@ -132,7 +133,8 @@ button { cursor: pointer; font-family: inherit; }
 .success-screen { text-align: center; padding: 60px 20px; }
 .success-screen .check-circle { width: 62px; height: 62px; border-radius: 50%; background: var(--red-tint); color: var(--red); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; margin: 0 auto 16px; }
 .success-screen h2 { font-family: 'Playfair Display', serif; font-size: 1.25rem; margin-bottom: 8px; }
-.success-screen p { color: var(--muted); font-size: 0.88rem; margin-bottom: 18px; }
+.success-screen p { color: var(--muted); font-size: 0.88rem; margin-bottom: 8px; }
+.success-screen .order-ref { font-size: 0.8rem; color: var(--ink); background: var(--red-tint); border-radius: 9px; padding: 10px 14px; display: inline-block; margin-bottom: 18px; font-weight: 700; }
 .success-screen a.btn-link { display: inline-block; background: var(--red); color: #fff; padding: 11px 22px; border-radius: 9px; text-decoration: none; font-size: 0.85rem; font-weight: 700; }
 
 .toast { position: fixed; left: 50%; bottom: calc(24px + var(--safe-b)); transform: translateX(-50%) translateY(20px); background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 10px; font-size: 0.82rem; opacity: 0; transition: opacity 0.2s, transform 0.2s; z-index: 500; pointer-events: none; max-width: 90%; text-align: center; }
@@ -142,9 +144,10 @@ button { cursor: pointer; font-family: inherit; }
 <body>
 
 <div class="topbar">
-    <a href="/user-cart" class="back">&#8249;</a>
-    <!-- Note: this page is served at /checkout, not /user-order —
-         /user-order is your existing "My Orders" history page. -->
+    <a href="/" class="back">&#8249;</a>
+    <!-- No accounts anymore: this page reads whatever got staged by
+         cart.js (handleBuyNow / handleCheckoutFromCart on the homepage) —
+         there's no /user-cart page to link back to. -->
     <h1>Checkout</h1>
 </div>
 
@@ -217,6 +220,10 @@ button { cursor: pointer; font-family: inherit; }
                             <input type="text" name="postal_code" required minlength="4" maxlength="10" />
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label>Email <span style="font-weight:500;color:var(--muted);">(optional — for order updates)</span></label>
+                        <input type="email" name="email" placeholder="you@example.com" />
+                    </div>
                     <div class="form-row-2">
                         <div class="form-group">
                             <label>City <span class="req-star">*</span></label>
@@ -254,6 +261,7 @@ button { cursor: pointer; font-family: inherit; }
     </div>
 </div>
 
+<script src="/assets/js/cart.js"></script>
 <script>
 function showToast(message) {
     let toast = document.getElementById('toast');
@@ -266,14 +274,9 @@ function showToast(message) {
 
 async function apiFetch(url, options = {}) {
     try {
-        const res = await fetch(url, { credentials: 'include', ...options });
+        const res = await fetch(url, options);
         let body;
         try { body = await res.json(); } catch { body = { success: false, message: 'Invalid server response' }; }
-        if (res.status === 401 || res.status === 403) {
-            showToast(body.message || 'Session expired — please log in again');
-            setTimeout(() => (window.location.href = '/login'), 1200);
-            throw new Error(body.message || 'Unauthorized');
-        }
         return body;
     } catch (err) {
         return { success: false, message: err.message || 'Network error' };
@@ -300,9 +303,7 @@ function copyText(text, btn) {
 
 /* ----- phone: digits only, 03XXXXXXXXX, hard-capped at 11 chars ----- */
 function sanitizePhoneInput(el) {
-    el.addEventListener('input', () => {
-        el.value = el.value.replace(/\D/g, '').slice(0, 11);
-    });
+    el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 11); });
     el.addEventListener('paste', (e) => {
         e.preventDefault();
         const text = (e.clipboardData || window.clipboardData).getData('text');
@@ -311,25 +312,33 @@ function sanitizePhoneInput(el) {
 }
 document.querySelectorAll('input[name="phone"]').forEach(sanitizePhoneInput);
 
-const CHECKOUT_KEY = 'checkoutItems';
-// Mirrors SHIPPING_PRICE in routes/userOrderRoutes.js — keep these in sync.
-const SHIPPING_PRICE = 250;
+// Mirrors SHIPPING_PRICE in routes/orderRoutes.js — keep these in sync.
+const SHIPPING_PRICE = 300;
 
-let selectedItems = []; // full cart-item objects (+ quantity), filtered to what the user chose
-let paymentFile = null; // single File object selected as payment proof
+// No accounts, no server cart — this page reads whichever staging state
+// cart.js's handleBuyNow()/handleCheckoutFromCart() set before redirecting here.
+// IMPORTANT: cart.js stores BOTH the cart ('ftd_cart') and the staged
+// "Buy Now" item ('buy_now_item') in sessionStorage — never localStorage.
+// This page must read/write the SAME storage cart.js uses, or the staged
+// item silently "disappears" here even though handleBuyNow() saved it
+// correctly. (This used to read/clear 'buy_now_item' from localStorage,
+// which meant it could never see what handleBuyNow() had staged — that
+// was the root cause of both the product page and the homepage "Buy Now"
+// button leading to an empty checkout. Fixed to use sessionStorage,
+// matching cart.js.)
+const params = new URLSearchParams(window.location.search);
+const mode = params.get('mode'); // 'buy_now' | 'cart'
 
-function readCheckoutIds() {
-    // Supports both the normal flow (set by the cart page) and a direct
-    // link with ?items=12,15,20 (e.g. a bookmarked "Buy Now" redirect).
-    const params = new URLSearchParams(window.location.search);
-    const fromQuery = params.get('items');
-    if (fromQuery) {
-        return fromQuery.split(',').map(s => Number(s.split(':')[0])).filter(Boolean);
+let lineItems = [];      // [{product_id, quantity}] — what actually gets submitted
+let selectedItems = [];  // hydrated with product details, for display + qty editing
+let paymentFile = null;  // single File object selected as payment proof
+
+function readStagedItems() {
+    if (mode === 'buy_now') {
+        const staged = sessionStorage.getItem('buy_now_item');
+        return staged ? [JSON.parse(staged)] : [];
     }
-    try {
-        const stored = JSON.parse(sessionStorage.getItem(CHECKOUT_KEY) || '[]');
-        return Array.isArray(stored) ? stored.filter(Boolean) : [];
-    } catch { return []; }
+    return Cart.read(); // [{product_id, quantity}]
 }
 
 function renderOrderItems() {
@@ -337,7 +346,7 @@ function renderOrderItems() {
     box.innerHTML = '';
 
     selectedItems.forEach(item => {
-        const img = (item.images && item.images[0]) || item.image || '';
+        const img = (item.images && item.images[0]) || '';
         const maxStock = Math.max(Number(item.stock) || 0, 0);
         const lineTotal = Math.round(Number(item.discounted_price) * item.quantity * 100) / 100;
         const row = document.createElement('div');
@@ -356,7 +365,14 @@ function renderOrderItems() {
                 </div>
                 <div class="oi-stock ${maxStock <= 5 ? 'low' : ''}">${maxStock} in stock</div>
             </div>
-            <button type="button" class="oi-remove" title="Remove from this order" onclick="removeFromOrder(${item.product_id})">&times;</button>
+            <button type="button" class="oi-remove" title="Remove from this order" aria-label="Remove from this order" onclick="removeFromOrder(${item.product_id})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                    <path d="M10 11v6"/><path d="M14 11v6"/>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                </svg>
+            </button>
         `;
         box.appendChild(row);
     });
@@ -379,14 +395,17 @@ function changeQty(productId, delta) {
     if (!item) return;
     const maxStock = Math.max(Number(item.stock) || 0, 0);
     const next = item.quantity + delta;
-    if (next < 1 || next > maxStock) return;
+    if (next < 1 || next > maxStock) return; // hard stock cap — never exceeds what's in stock
     item.quantity = next;
+    // keep the cart itself in sync (and stock-capped) if this checkout came
+    // from the cart, not a one-off Buy Now
+    if (mode !== 'buy_now') Cart.setQuantity(productId, next, maxStock);
     renderOrderItems();
 }
 
 function removeFromOrder(productId) {
     selectedItems = selectedItems.filter(i => i.product_id !== productId);
-    sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(selectedItems.map(i => i.product_id)));
+    if (mode !== 'buy_now') Cart.remove(productId);
     if (!selectedItems.length) { renderEmptyState(); return; }
     renderOrderItems();
 }
@@ -395,26 +414,29 @@ function renderEmptyState() {
     document.getElementById('pageWrap').innerHTML = `
         <div class="empty-state">
             No items selected for checkout.<br/><br/>
-            <a href="/user-cart">← Go back to your cart and select items</a>
+            <a href="/">← Go back to the store</a>
         </div>
     `;
 }
 
 async function loadSelectedItems() {
-    const ids = readCheckoutIds();
-    if (!ids.length) { renderEmptyState(); return; }
+    const staged = readStagedItems();
+    if (!staged.length) { renderEmptyState(); return; }
 
-    const res = await apiFetch('/api/cart');
+    const ids = staged.map(i => i.product_id).join(',');
+    const res = await apiFetch(`/api/products?ids=${ids}`);
     if (!res.success) {
-        showToast('Could not load your cart items');
+        showToast('Could not load product details');
         renderEmptyState();
         return;
     }
 
-    const cartItems = (res.data && res.data.items) || [];
-    selectedItems = cartItems
-        .filter(i => ids.includes(i.product_id) && i.is_active && Number(i.stock) > 0)
-        .map(i => ({ ...i, quantity: 1 })); // default quantity is always 1
+    const products = (res.data && res.data.products) || [];
+    const byId = Object.fromEntries(products.map(p => [p.product_id, p]));
+
+    selectedItems = staged
+        .filter(i => byId[i.product_id] && byId[i.product_id].is_active && Number(byId[i.product_id].stock) > 0)
+        .map(i => ({ ...byId[i.product_id], quantity: Math.min(i.quantity, byId[i.product_id].stock) }));
 
     if (!selectedItems.length) { renderEmptyState(); return; }
     renderOrderItems();
@@ -457,9 +479,7 @@ function removePaymentFile() {
 renderUploadGrid();
 
 /* ----- form validation helpers ----- */
-function markField(el, hasError) {
-    el.classList.toggle('field-error', hasError);
-}
+function markField(el, hasError) { el.classList.toggle('field-error', hasError); }
 
 function validateForm(form) {
     const errors = [];
@@ -518,26 +538,31 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     const fd = new FormData();
     fd.append('full_name', form.full_name.value.trim());
     fd.append('phone', form.phone.value.trim());
+    fd.append('email', form.email.value.trim());
     fd.append('city', form.city.value.trim());
     fd.append('province', form.province.value.trim());
     fd.append('postal_code', form.postal_code.value.trim());
     fd.append('address', form.address.value.trim());
     fd.append('items', JSON.stringify(selectedItems.map(i => ({ product_id: i.product_id, quantity: i.quantity }))));
-
-    // Single screenshot — matches upload.single('screenshot') on the backend.
-    fd.append('screenshot', paymentFile);
+    fd.append('screenshot', paymentFile); // matches upload.single('screenshot') on the backend
 
     const res = await apiFetch('/api/orders', { method: 'POST', body: fd });
 
     if (res.success) {
-        sessionStorage.removeItem(CHECKOUT_KEY);
+        // Clear whatever staged this checkout — buy-now item or the whole cart.
+        // Must match the storage handleBuyNow()/Cart use (sessionStorage).
+        if (mode === 'buy_now') sessionStorage.removeItem('buy_now_item');
+        else Cart.clear();
+
         const orderId = res.data && res.data.order_id;
+        const phoneUsed = form.phone.value.trim();
         document.getElementById('pageWrap').innerHTML = `
             <div class="success-screen">
                 <div class="check-circle">&#10003;</div>
                 <h2>Order Placed!</h2>
-                <p>${escapeHtml(res.message || 'We will verify your payment shortly.')}${orderId ? ` (Order #${orderId})` : ''}</p>
-                <a class="btn-link" href="/user-order">View My Orders</a>
+                <p>${escapeHtml(res.message || 'We will verify your payment shortly.')}</p>
+                ${orderId ? `<div class="order-ref">Order #${orderId} — keep this with phone ${escapeHtml(phoneUsed)} to check your order status</div><br/>` : ''}
+                <a class="btn-link" href="/">Continue Shopping</a>
             </div>
         `;
     } else {

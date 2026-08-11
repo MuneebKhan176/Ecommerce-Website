@@ -1,12 +1,17 @@
-// routes/adminOrderRoutes.js
+// routes/Admin_Routes/adminOrderRoutes.js
 //
 // Admin order management: listing, detail, STEP-GATED status changes
 // (one step forward at a time, no arbitrary enum jumps), and payment
-// screenshot verification. Mount this at '/admin/api' in web.js
-// (same base as adminStockRoutes / adminSliderRoutes / adminCategoryRoutes).
+// screenshot verification. Mount this at '/admin/api' in web.js.
+//
+// UPDATED FOR v2 SCHEMA: orders no longer join to `addresses` or `users`
+// — buyer name/phone/email/shipping address live directly on the
+// `orders` row (guest checkout, see Database/schema.sql), so every query
+// below reads those columns straight off `o` instead of joining out to
+// tables that no longer exist.
 //
 // GET   /admin/api/orders                     — list (filter by status/search, paginated)
-// GET   /admin/api/orders/:id                 — full detail (items + address + payment)
+// GET   /admin/api/orders/:id                 — full detail (items + shipping info + payment)
 // PATCH /admin/api/orders/:id/advance          — move to the NEXT status in the flow
 //                                                 (blocked until payment is VERIFIED)
 // PATCH /admin/api/orders/:id/cancel           — cancel (only if not COMPLETED/CANCELLED)
@@ -41,6 +46,8 @@ function nextStatus(current) {
 }
 
 // GET /orders?status=&search=&page=&limit=
+// search now matches order id, buyer name, or phone directly off `orders` —
+// no address table to join for that anymore.
 router.get('/orders', (req, res) => {
     const status = req.query.status;
     const search = req.query.search?.trim();
@@ -56,7 +63,7 @@ router.get('/orders', (req, res) => {
         params.push(status);
     }
     if (search) {
-        where.push('(o.order_id = ? OR a.full_name LIKE ? OR a.phone LIKE ?)');
+        where.push('(o.order_id = ? OR o.full_name LIKE ? OR o.phone LIKE ?)');
         params.push(Number(search) || -1, `%${search}%`, `%${search}%`);
     }
 
@@ -64,11 +71,10 @@ router.get('/orders', (req, res) => {
 
     const sql = `
         SELECT o.order_id, o.status, o.subtotal, o.shipping_price, o.total_price, o.created_at,
-               a.full_name AS customer_name, a.phone AS customer_phone, a.city,
+               o.full_name AS customer_name, o.phone AS customer_phone, o.city,
                p.payment_status, p.screenshot_key,
                (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
         FROM orders o
-        JOIN addresses a ON a.address_id = o.address_id
         LEFT JOIN payments p ON p.order_id = o.order_id
         ${whereSql}
         ORDER BY o.created_at DESC
@@ -90,7 +96,6 @@ router.get('/orders', (req, res) => {
 
         const countSql = `
             SELECT COUNT(*) AS total FROM orders o
-            JOIN addresses a ON a.address_id = o.address_id
             LEFT JOIN payments p ON p.order_id = o.order_id
             ${whereSql}
         `;
@@ -105,19 +110,15 @@ router.get('/orders', (req, res) => {
 });
 
 // GET /orders/:id — full detail
-// Each item now also carries `category_name` and `thumbnail_url` (the
-// product's lowest display_order IMAGE from product_media) so the admin
-// can visually trace exactly what was ordered.
+// Each item carries `category_name` and `thumbnail_url` (the product's
+// lowest display_order IMAGE from product_media) so the admin can
+// visually trace exactly what was ordered. Shipping/buyer info comes
+// straight off the order row — no address/user join needed.
 router.get('/orders/:id', (req, res) => {
     const { id } = req.params;
 
     conn.query(
-        `SELECT o.*, a.full_name AS ship_name, a.phone AS ship_phone, a.city, a.province, a.postal_code, a.address,
-                u.full_name AS account_name, u.email AS account_email
-         FROM orders o
-         JOIN addresses a ON a.address_id = o.address_id
-         JOIN users u ON u.user_id = o.user_id
-         WHERE o.order_id = ?`,
+        `SELECT * FROM orders WHERE order_id = ?`,
         [id],
         (err, orderRows) => {
             if (err) return sendResponse(res, 500, false, 'Database error', err.message);
@@ -181,10 +182,7 @@ router.get('/orders/:id', (req, res) => {
 
 // PATCH /orders/:id/advance — move exactly one step forward, never a jump.
 // Gated: the order's payment must be VERIFIED before it can leave PENDING
-// and move toward COMPLETED. This applies at every step, not just the
-// first one, since a payment could in principle be flagged after the
-// fact — but in practice this will only ever bite on the PENDING -> CONFIRMED
-// transition since payment status can't change after that without admin action.
+// and move toward COMPLETED.
 router.patch('/orders/:id/advance', (req, res) => {
     const { id } = req.params;
 
@@ -269,7 +267,6 @@ router.patch('/orders/:id/payment', (req, res) => {
 
                 const current = ordRows.length ? ordRows[0].status : null;
                 if (current === 'COMPLETED' || current === 'CANCELLED') {
-                    // Order already terminal — payment rejected, but nothing to cascade.
                     return sendResponse(res, 200, true, 'Payment marked as rejected', {
                         order_id: id, payment_status: newStatus, order_status: current,
                     });

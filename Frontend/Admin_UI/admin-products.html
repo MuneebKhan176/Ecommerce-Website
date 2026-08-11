@@ -79,7 +79,7 @@ body {
     margin: 0 auto;
 }
 
-/* ===== Compact filter row: search + category select ===== */
+/* ===== Search row (category filter now lives in the tabs below) ===== */
 .filter-row {
     display: flex;
     gap: 8px;
@@ -99,24 +99,7 @@ body {
     font-family: inherit;
 }
 
-.filter-row select {
-    width: 170px;
-    flex-shrink: 0;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 8px 11px;
-    font-size: 0.82rem;
-    color: var(--ink);
-    font-family: inherit;
-}
-
-.filter-row input:focus,
-.filter-row select:focus { outline: 2px solid var(--red); outline-offset: -1px; }
-
-@media (max-width: 480px) {
-    .filter-row select { width: 100%; }
-}
+.filter-row input:focus { outline: 2px solid var(--red); outline-offset: -1px; }
 
 /* Row holding gender tabs on the left, Add Product button on the right */
 .tabs-row {
@@ -125,7 +108,7 @@ body {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 .gender-tabs {
@@ -179,7 +162,57 @@ body {
     color: #fff;
 }
 
-/* ===== Product grid: max 5 cols desktop, centered, comfortable margins ===== */
+/* ===== Category tabs — one pill per category, scoped to whichever
+   gender tab is active. Selecting a tab both filters the grid to that
+   category AND switches on per-category reorder mode, since
+   display_order only ever means something within a single category.
+   This replaces the old <select id="categoryFilter"> dropdown, which
+   gave no visual cue that a specific category's own sequence was in
+   view. ===== */
+.category-tabs-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 10px;
+    padding-bottom: 4px;
+}
+.category-tabs-wrap::-webkit-scrollbar { height: 5px; }
+.category-tabs-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.category-tabs {
+    display: flex;
+    gap: 8px;
+    width: max-content;
+}
+
+.cat-tab {
+    flex-shrink: 0;
+    padding: 7px 16px;
+    border-radius: 999px;
+    border: 1.5px solid var(--red);
+    background: #fff;
+    color: var(--red);
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.cat-tab:hover { background: var(--red-tint); }
+.cat-tab.active { background: var(--red); color: #fff; }
+
+/* Hint about reorder mode — shown above the grid, changes text
+   depending on whether a single category tab is currently selected. */
+.order-hint {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.order-hint strong { color: var(--ink); }
+
+/* ===== Product grid: max 4 cols desktop, centered, comfortable margins ===== */
 .product-grid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -347,6 +380,21 @@ body {
     color: #fff;
 }
 
+/* Sequence-position badge — only shown when the grid is scoped to a
+   single category (i.e. display_order is meaningful for what's on
+   screen). Sits on the top-left, opposite the inactive/new badges. */
+.badge.order-pos {
+    background: rgba(20,20,20,0.78);
+    color: #fff;
+}
+
+.card-badges.top-left {
+    top: 8px;
+    left: 8px;
+    right: auto;
+    align-items: flex-start;
+}
+
 /* Details section — compact padding, no separate border (the card
    wrapper now owns the border/shadow), just a thin accent rule under
    the image to tie the two halves together */
@@ -490,12 +538,14 @@ body {
 .card-actions {
     margin-top: auto;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
     padding-top: 6px;
 }
 
 .card-actions .icon-btn {
     flex: 1;
+    min-width: 60px;
     height: 28px;
     border-radius: 7px;
     border: 1px solid var(--border);
@@ -510,6 +560,34 @@ body {
 }
 
 .card-actions .icon-btn.danger { color: var(--red); border-color: rgba(179,18,28,0.25); }
+
+/* Up/down reorder buttons — own row above Edit/Delete, only rendered
+   when the grid is scoped to a single category. */
+.card-actions .move-row {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+}
+
+.card-actions .move-btn {
+    flex: 1;
+    height: 26px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: #faf7f0;
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.card-actions .move-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
 
 /* ===== Empty / loading states ===== */
 .state-msg {
@@ -780,7 +858,6 @@ body {
     <main class="admin-content">
         <div class="filter-row">
             <input type="text" id="searchInput" placeholder="Search name or SKU…" />
-            <select id="categoryFilter"><option value="">All categories</option></select>
         </div>
 
         <div class="tabs-row">
@@ -791,6 +868,16 @@ body {
             </div>
             <button type="button" class="add-product-btn" id="addBtn">+ Add Product</button>
         </div>
+
+        <!-- Category tabs — filtered by the current gender tab. Selecting one
+             both filters the grid AND switches on per-category reorder mode,
+             since display_order only ever means something within a single
+             category. -->
+        <div class="category-tabs-wrap">
+            <div class="category-tabs" id="categoryTabs"></div>
+        </div>
+
+        <p class="order-hint" id="orderHint"></p>
 
         <div class="product-grid" id="grid"></div>
     </main>
@@ -950,6 +1037,14 @@ body {
 
         let categories = [];
         let listGender = '';
+
+        // Which single category tab is active, if any. '' = "All
+        // categories" (mixed grid, no reorder). This drives both the
+        // grid's filter AND whether reorder mode (move buttons, position
+        // badges) is switched on, since display_order is only ever
+        // meaningful within one category at a time.
+        let activeCategoryId = '';
+
         let formGender = '';
 
         let newFiles = [];
@@ -964,21 +1059,40 @@ body {
         async function init() {
             const catRes = await adminFetch(CAT_API);
             if (catRes.success) categories = catRes.data;
+            renderCategoryTabs();
             loadProducts();
         }
 
-        // ----- listing page: gender tabs + category select -----
+        // ----- listing page: gender tabs + category tabs -----
         function categoriesForGender(gender) {
             return gender ? categories.filter(c => c.gender === gender) : categories;
         }
 
-        function renderCategoryFilterOptions() {
-            const select = document.getElementById('categoryFilter');
-            const opts = categoriesForGender(listGender)
-                .map(c => `<option value="${c.category_id}">${escapeHtml(c.category_name)}</option>`)
-                .join('');
-            select.innerHTML = '<option value="">All categories</option>' + opts;
-            select.value = '';
+        // Renders the category pill row for the current gender tab. The
+        // active pill both filters products and (via loadProducts'
+        // reorderMode check) turns on per-category reordering.
+        function renderCategoryTabs() {
+            const wrap = document.getElementById('categoryTabs');
+            const cats = categoriesForGender(listGender);
+
+            const allTab = `<button type="button" class="cat-tab ${activeCategoryId === '' ? 'active' : ''}" data-cat="">All categories</button>`;
+            const catTabs = cats.map(c => `
+                <button type="button" class="cat-tab ${String(activeCategoryId) === String(c.category_id) ? 'active' : ''}" data-cat="${c.category_id}">
+                    ${escapeHtml(c.category_name)}
+                </button>
+            `).join('');
+
+            wrap.innerHTML = allTab + catTabs;
+            wrap.querySelectorAll('.cat-tab').forEach(btn => {
+                btn.addEventListener('click', () => selectCategoryTab(btn.dataset.cat));
+            });
+        }
+
+        function selectCategoryTab(catId) {
+            if (String(catId) === String(activeCategoryId)) return;
+            activeCategoryId = catId;
+            renderCategoryTabs();
+            loadProducts();
         }
 
         document.querySelectorAll('.gender-tab').forEach(btn => {
@@ -986,33 +1100,62 @@ body {
                 document.querySelectorAll('.gender-tab').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 listGender = btn.dataset.gender;
-                renderCategoryFilterOptions();
+                // A category tab from the previous gender may not exist in
+                // the new list, so reset back to "All categories" on switch.
+                activeCategoryId = '';
+                renderCategoryTabs();
                 loadProducts();
             });
         });
 
-        document.getElementById('categoryFilter').addEventListener('change', loadProducts);
         document.getElementById('searchInput').addEventListener('input', debounce(loadProducts));
 
         async function loadProducts() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '<p class="state-msg">Loading…</p>';
 
+            const search = document.getElementById('searchInput').value.trim();
+
             const params = new URLSearchParams({
-                search: document.getElementById('searchInput').value.trim(),
+                search,
                 gender: listGender,
-                category_id: document.getElementById('categoryFilter').value,
+                category_id: activeCategoryId,
             });
 
             const res = await adminFetch(`${API}?${params}`);
             if (!res.success) return showToast(res.message);
-            renderGrid(sortByNewest(res.data.products));
+
+            // Reorder (up/down) only makes sense when the grid is scoped to
+            // exactly one category tab — display_order is a per-category
+            // sequence, so it's not meaningful when several categories are
+            // mixed together on screen. A search on top of a category tab
+            // also hides some of the sequence's neighbors from view, which
+            // would make moving a product confusing, so it's disabled then too.
+            const reorderMode = !!activeCategoryId && !search;
+
+            const hint = document.getElementById('orderHint');
+            hint.innerHTML = reorderMode
+                ? 'Reorder is on for this category. Use ▲ ▼ on a card to change where it appears within this category.'
+                : 'Pick a category tab above to reorder products within it. Products are otherwise shown newest-first.';
+
+            let products = res.data.products;
+            if (!reorderMode) {
+                products = sortByNewest(products);
+            }
+            // When reorderMode is true, the server already returned the
+            // products sorted by display_order for that category — keep
+            // that order as-is.
+
+            renderGrid(products, reorderMode);
         }
 
         // Newest-added stock first. Prefers a real timestamp field if the
         // API provides one (created_at / createdAt), and falls back to
         // product_id (higher id = created later on an auto-increment PK)
         // so this still works even if the backend doesn't send a date.
+        // Only used when the grid isn't scoped to a single category (see
+        // reorderMode above) — a specific category's own display_order
+        // sequence always takes priority when it's meaningful.
         function sortByNewest(products) {
             return [...products].sort((a, b) => {
                 const aDate = a.created_at || a.createdAt;
@@ -1025,7 +1168,7 @@ body {
             });
         }
 
-        function renderGrid(products) {
+        function renderGrid(products, reorderMode) {
             const grid = document.getElementById('grid');
             if (!products.length) {
                 grid.innerHTML = '<p class="state-msg">No products match. Tap + to add one.</p>';
@@ -1069,10 +1212,23 @@ body {
 
                 const ribbonHtml = p.has_discount ? `<div class="discount-ribbon">${Number(p.discount_percentage)}% OFF</div>` : '';
 
-                // "New" badge for the first few cards in the (now newest-first) list
-                const isNew = idx < 4;
+                // "New" badge for the first few cards, only in the default
+                // newest-first view (not meaningful once sorted by a manual
+                // reorder sequence).
+                const isNew = !reorderMode && idx < 4;
 
                 const stockClass = Number(p.stock) <= 0 ? 'out' : (Number(p.stock) <= (p.low_stock_threshold || LOW_STOCK_DEFAULT) ? 'low' : '');
+
+                // Position badge (top-left) only makes sense in reorder mode,
+                // where idx directly reflects this category's sequence.
+                const orderBadgeHtml = reorderMode ? `<span class="badge order-pos">#${idx + 1}</span>` : '';
+
+                const moveRowHtml = reorderMode ? `
+                    <div class="move-row">
+                        <button class="move-btn" onclick="moveProduct(${p.product_id}, 'up')" ${idx === 0 ? 'disabled' : ''} title="Move earlier">&#9650;</button>
+                        <button class="move-btn" onclick="moveProduct(${p.product_id}, 'down')" ${idx === products.length - 1 ? 'disabled' : ''} title="Move later">&#9660;</button>
+                    </div>
+                ` : '';
 
                 return `
                     <div class="product-card">
@@ -1081,6 +1237,9 @@ body {
                              ontouchstart="cardTouchStart(event, ${p.product_id})"
                              ontouchend="cardTouchEnd(event, ${p.product_id})">
                             ${ribbonHtml}
+                            <div class="card-badges top-left">
+                                ${orderBadgeHtml}
+                            </div>
                             <div class="card-badges">
                                 ${!p.is_active ? '<span class="badge inactive">Inactive</span>' : ''}
                                 ${isNew ? '<span class="badge new">New</span>' : ''}
@@ -1096,6 +1255,7 @@ body {
                             ${desc ? `<div class="card-desc">${escapeHtml(shortDesc)}</div>` : ''}
                             ${needsTruncate ? `<button class="read-more-btn" onclick='event.stopPropagation();showDescription(${JSON.stringify(p.product_name)}, ${JSON.stringify(desc)})'>Read more</button>` : ''}
                             <div class="card-actions">
+                                ${moveRowHtml}
                                 <button class="icon-btn" onclick="editProduct(${p.product_id})">Edit</button>
                                 <button class="icon-btn danger" onclick="deleteProduct(${p.product_id})">Delete</button>
                             </div>
@@ -1103,6 +1263,18 @@ body {
                     </div>
                 `;
             }).join('');
+        }
+
+        // ----- reorder (per-category sequence) -----
+        async function moveProduct(id, direction) {
+            const res = await adminFetch(`${API}/${id}/move`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ direction }),
+            });
+            if (!res.success) return showToast(res.message);
+            if (res.data && res.data.moved === false) return showToast(res.message);
+            loadProducts();
         }
 
         // ----- in-card carousel -----

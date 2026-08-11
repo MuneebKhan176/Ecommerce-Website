@@ -30,6 +30,5 @@ router.get('/categories', (req, res) => res.sendFile(path.join(VIEW_DIR, 'admin-
 router.get('/orders', (req, res) => res.sendFile(path.join(VIEW_DIR, 'admin-orders.html')));
 router.get('/inventory', (req, res) => res.sendFile(path.join(VIEW_DIR, 'admin-inventory.html')));
 router.get('/slider', (req, res) => res.sendFile(path.join(VIEW_DIR, 'admin-slider.html')));
-router.get('/users', (req, res) => res.sendFile(path.join(VIEW_DIR, 'admin-users.html')));
 
 module.exports = router;

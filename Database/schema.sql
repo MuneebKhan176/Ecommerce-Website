@@ -1,21 +1,54 @@
--- 1. USERS
-CREATE TABLE IF NOT EXISTS users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    phone VARCHAR(30),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- ============================================================
+-- SCHEMA v2 — guest-checkout storefront, no user accounts.
+--
+-- Removed entirely: `users`, `addresses`, `cart_items`.
+--   - There are no customer accounts anymore, so nothing needs a
+--     user_id anywhere in this schema.
+--   - The cart is not persisted server-side at all — it lives in the
+--     browser (localStorage) via Frontend/assets/js/cart.js and is
+--     only ever sent to the server once, as the `items` array in the
+--     POST /api/orders request body.
+--   - Shipping "address" is no longer a separate reusable row tied to
+--     an account — it's one-time information the buyer types at
+--     checkout, so it's stored directly on the order itself.
+--
+-- Kept as-is: `categories`, `products`, `product_media`,
+-- `order_items`, `payments`, `admins`, `homepage_sliders`. Admin
+-- accounts remain (staff still need to log in to the admin panel);
+-- only *customer* accounts are gone.
+--
+-- v2.1: added `display_order` to `categories` (ONE combined sequence
+-- across MEN + WOMEN together — decides which category shows where
+-- overall) and to `products` (ONE sequence PER category_id — decides
+-- which product shows where within its own category).
+-- ============================================================
 
--- 2. CATEGORIES
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS cart_items;
+DROP TABLE IF EXISTS homepage_sliders;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS addresses;
+DROP TABLE IF EXISTS product_media;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS users;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 1. CATEGORIES
 CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
     gender ENUM('MEN','WOMEN') NOT NULL,
-    category_name VARCHAR(100) NOT NULL
+    category_name VARCHAR(100) NOT NULL,
+    -- Combined (gender-agnostic) display sequence. Lower = shown earlier.
+    display_order INT NOT NULL DEFAULT 0
 );
 
--- 3. PRODUCTS
+-- 2. PRODUCTS
 CREATE TABLE IF NOT EXISTS products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
     category_id INT NOT NULL,
@@ -27,6 +60,9 @@ CREATE TABLE IF NOT EXISTS products (
     low_stock_threshold INT NOT NULL DEFAULT 3,
     sku VARCHAR(50) UNIQUE,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    -- Per-category display sequence. Lower = shown earlier within
+    -- this product's category_id. Not comparable across categories.
+    display_order INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT fk_products_category
@@ -38,7 +74,7 @@ CREATE TABLE IF NOT EXISTS products (
         CHECK (discount_percentage >= 0 AND discount_percentage <= 100)
 );
 
--- 4. PRODUCT MEDIA
+-- 3. PRODUCT MEDIA
 CREATE TABLE IF NOT EXISTS product_media (
     media_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
@@ -51,29 +87,26 @@ CREATE TABLE IF NOT EXISTS product_media (
         ON DELETE CASCADE
 );
 
--- 5. USER ADDRESSES
-CREATE TABLE IF NOT EXISTS addresses (
-    address_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    full_name VARCHAR(100) NOT NULL,
-    phone VARCHAR(30),
-    city VARCHAR(100),
-    province VARCHAR(100),
-    postal_code VARCHAR(20),
-    address TEXT NOT NULL,
-    FOREIGN KEY (user_id)
-        REFERENCES users(user_id)
-        ON DELETE CASCADE
-);
-
--- 6. ORDERS
+-- 4. ORDERS
+-- Guest checkout: every field needed to fulfil the order (who it's for,
+-- where it ships) lives directly on the row. No user_id, no address_id,
+-- no FK to an accounts table of any kind.
 CREATE TABLE IF NOT EXISTS orders (
     order_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    address_id INT NOT NULL,
+
+    -- buyer / shipping info, captured fresh at checkout every time
+    full_name VARCHAR(100) NOT NULL,
+    phone VARCHAR(30) NOT NULL,
+    email VARCHAR(255),
+    city VARCHAR(100) NOT NULL,
+    province VARCHAR(100) NOT NULL,
+    postal_code VARCHAR(20) NOT NULL,
+    address TEXT NOT NULL,
+
     subtotal DECIMAL(12,2) NOT NULL,
     shipping_price DECIMAL(12,2) NOT NULL,
     total_price DECIMAL(12,2) NOT NULL,
+
     status ENUM(
         'PENDING',
         'CONFIRMED',
@@ -83,12 +116,11 @@ CREATE TABLE IF NOT EXISTS orders (
         'COMPLETED',
         'CANCELLED'
     ) DEFAULT 'PENDING',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (address_id) REFERENCES addresses(address_id)
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. ORDER ITEMS
+-- 5. ORDER ITEMS
 CREATE TABLE IF NOT EXISTS order_items (
     item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL,
@@ -103,7 +135,7 @@ CREATE TABLE IF NOT EXISTS order_items (
         REFERENCES products(product_id)
 );
 
--- 8. PAYMENTS
+-- 6. PAYMENTS
 CREATE TABLE IF NOT EXISTS payments (
     payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
@@ -120,8 +152,7 @@ CREATE TABLE IF NOT EXISTS payments (
         ON DELETE CASCADE
 );
 
-
--- 9. ADMINS
+-- 7. ADMINS  (unchanged — staff/admin accounts are not affected)
 CREATE TABLE IF NOT EXISTS admins (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -133,7 +164,7 @@ CREATE TABLE IF NOT EXISTS admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 10. HOMEPAGE SLIDERS
+-- 8. HOMEPAGE SLIDERS  (unchanged)
 CREATE TABLE IF NOT EXISTS homepage_sliders (
     slider_id INT AUTO_INCREMENT PRIMARY KEY,
     cloud_key VARCHAR(500) NOT NULL,
@@ -143,21 +174,30 @@ CREATE TABLE IF NOT EXISTS homepage_sliders (
     uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 11. CART ITEMS
-CREATE TABLE IF NOT EXISTS cart_items (
-    cart_item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+
+-- 9. PRODUCT REVIEWS
+CREATE TABLE IF NOT EXISTS product_reviews (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
     product_id INT NOT NULL,
+    reviewer_name VARCHAR(100) NOT NULL,
+    rating TINYINT UNSIGNED NOT NULL,
+    review_text TEXT,
+    is_approved BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_cart_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(user_id)
-        ON DELETE CASCADE,
-    CONSTRAINT fk_cart_product
+
+    CONSTRAINT fk_reviews_product
         FOREIGN KEY (product_id)
         REFERENCES products(product_id)
         ON DELETE CASCADE,
-    CONSTRAINT uq_cart_user_product
-        UNIQUE (user_id, product_id)
+
+    CONSTRAINT chk_review_rating
+        CHECK (rating BETWEEN 1 AND 5)
 );
+
+-- ============================================================
+-- NOTE: if you're applying this to a database that already has
+-- data in `categories` and `products`, run
+-- migration_add_display_order.sql instead of re-running this file —
+-- it adds the two new columns AND backfills sensible starting order
+-- values so nothing on the storefront/admin visibly jumps around.
+-- ============================================================
