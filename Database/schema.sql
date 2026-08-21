@@ -18,18 +18,7 @@
 -- parents), with FOREIGN_KEY_CHECKS disabled as a safety net
 -- regardless of order.
 -- ============================================================
-SeT FOREIGN_KEY_CHECKS = 0;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS product_reviews;
-DROP TABLE IF EXISTS product_media;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS categories;
-DROP TABLE IF EXISTS admins;
-DROP TABLE IF EXISTS homepage_sliders;
 
-Set foreign_key_checks = 1;
 
 -- 1. CATEGORIES
 CREATE TABLE IF NOT EXISTS categories (
