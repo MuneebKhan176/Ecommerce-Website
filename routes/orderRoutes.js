@@ -7,7 +7,15 @@
 // to own one — order status is instead looked up per-order by pairing
 // the order id with the phone number that placed it.
 //
-// POST /api/orders          (multipart/form-data) — place an order, ONE payment screenshot required
+// UPDATED — COD + ADVANCE PAYMENT:
+// Every order now carries a `payment_type`: 'COD' (default, pay the
+// rider cash on delivery — no screenshot, no bank/wallet details
+// needed) or 'ADVANCE' (bank/wallet transfer, screenshot mandatory).
+// A `payments` row is ONLY ever created for ADVANCE orders.
+//
+// POST /api/orders          (multipart/form-data) — place an order.
+//                            screenshot is REQUIRED only when
+//                            payment_type = 'ADVANCE'.
 // GET  /api/orders/:id?phone=...   — order status lookup (order id + phone must match)
 
 const express = require('express');
@@ -22,7 +30,9 @@ function sendResponse(res, statusCode, success, message, data = null) {
 }
 
 // Flat shipping fee applied to every order.
-const SHIPPING_PRICE = 300;
+const SHIPPING_PRICE = 200;
+
+const VALID_PAYMENT_TYPES = ['COD', 'ADVANCE'];
 
 function withDiscount(p) {
     const price = Number(p.price);
@@ -36,15 +46,21 @@ function withDiscount(p) {
 
 // POST /orders
 // Fields: items (JSON string: [{product_id, quantity}, ...]), full_name, phone,
-// email (optional), city, province, postal_code, address, screenshot (single file, required).
+// email (optional), city, province, postal_code, address,
+// payment_type ('COD' | 'ADVANCE', defaults to 'COD' if omitted/invalid),
+// screenshot (single file — REQUIRED only when payment_type = 'ADVANCE').
 //
 // Used by BOTH the "Buy Now" flow (single-item items array) and the cart
 // checkout flow (multi-item items array built from localStorage) — the
 // homepage sends the same shape either way.
 router.post('/orders', upload.single('screenshot'), (req, res) => {
-    // ----- 1. Payment proof is mandatory. Schema stores exactly one screenshot per order. -----
-    if (!req.file) {
-        return sendResponse(res, 400, false, 'A payment screenshot is required to place an order');
+    // ----- 0. Resolve payment type first — it decides whether a screenshot is even required. -----
+    const rawPaymentType = (req.body.payment_type || 'COD').trim().toUpperCase();
+    const paymentType = VALID_PAYMENT_TYPES.includes(rawPaymentType) ? rawPaymentType : 'COD';
+
+    // ----- 1. Payment proof is mandatory ONLY for advance (bank/wallet transfer) orders. -----
+    if (paymentType === 'ADVANCE' && !req.file) {
+        return sendResponse(res, 400, false, 'A payment screenshot is required for Advance Payment orders');
     }
 
     let items;
@@ -105,12 +121,12 @@ router.post('/orders', upload.single('screenshot'), (req, res) => {
             const shippingPrice = SHIPPING_PRICE;
             const totalPrice = Math.round((subtotal + shippingPrice) * 100) / 100;
 
-            // ----- 3. The order itself — buyer/shipping info stored directly, no address table. -----
+            // ----- 3. The order itself — buyer/shipping info + payment_type stored directly. -----
             conn.query(
                 `INSERT INTO orders
-                    (full_name, phone, email, city, province, postal_code, address, status, subtotal, shipping_price, total_price)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)`,
-                [full_name, phone, email, city, province, postal_code, address, subtotal, shippingPrice, totalPrice],
+                    (full_name, phone, email, city, province, postal_code, address, payment_type, status, subtotal, shipping_price, total_price)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?)`,
+                [full_name, phone, email, city, province, postal_code, address, paymentType, subtotal, shippingPrice, totalPrice],
                 (orderErr, orderResult) => {
                     if (orderErr) return sendResponse(res, 500, false, 'Database error creating order', orderErr.message);
                     const orderId = orderResult.insertId;
@@ -134,6 +150,25 @@ router.post('/orders', upload.single('screenshot'), (req, res) => {
                                 })
                             );
 
+                            // COD orders never get a `payments` row — there's nothing to verify
+                            // upfront, the rider collects cash on delivery instead.
+                            if (paymentType === 'COD') {
+                                Promise.all(stockUpdates)
+                                    .then(() => {
+                                        return sendResponse(res, 201, true,
+                                            'Order placed successfully! Pay cash to the rider when your order arrives.',
+                                            { order_id: orderId, total_price: totalPrice, payment_type: 'COD' });
+                                    })
+                                    .catch(stockErr => {
+                                        console.error('⚠️ Order placed but stock update failed:', stockErr.message);
+                                        return sendResponse(res, 201, true,
+                                            'Order placed! Pay cash to the rider when your order arrives.',
+                                            { order_id: orderId, total_price: totalPrice, payment_type: 'COD' });
+                                    });
+                                return;
+                            }
+
+                            // ADVANCE: upload the screenshot and record a payments row for admin review.
                             Promise.all(stockUpdates)
                                 .then(() => uploadImages([req.file], 'payment-screenshots'))
                                 .then(uploaded => new Promise((resolve, reject) => {
@@ -148,6 +183,7 @@ router.post('/orders', upload.single('screenshot'), (req, res) => {
                                     return sendResponse(res, 201, true, 'Order placed successfully! We will verify your payment shortly.', {
                                         order_id: orderId,
                                         total_price: totalPrice,
+                                        payment_type: 'ADVANCE',
                                     });
                                 })
                                 .catch(finalErr => {
@@ -156,7 +192,7 @@ router.post('/orders', upload.single('screenshot'), (req, res) => {
                                     console.error('⚠️ Order placed but payment proof step failed:', finalErr.message);
                                     return sendResponse(res, 201, true,
                                         'Order placed, but we had trouble saving your payment screenshot. Please contact us on WhatsApp with your order number.',
-                                        { order_id: orderId, total_price: totalPrice });
+                                        { order_id: orderId, total_price: totalPrice, payment_type: 'ADVANCE' });
                                 });
                         }
                     );
@@ -213,6 +249,7 @@ router.get('/orders/:id', (req, res) => {
                         };
                     });
 
+                    // Payments row only exists for ADVANCE orders — COD naturally yields null here.
                     conn.query(
                         `SELECT payment_method, screenshot_key, payment_status, uploaded_at
                          FROM payments WHERE order_id = ?`,
@@ -224,7 +261,7 @@ router.get('/orders/:id', (req, res) => {
                                 payment_method: payRows[0].payment_method,
                                 payment_status: payRows[0].payment_status,
                                 uploaded_at: payRows[0].uploaded_at,
-                                screenshot: keyToUrl(payRows[0].screenshot_key),
+                                screenshot: payRows[0].screenshot_key ? keyToUrl(payRows[0].screenshot_key) : null,
                             } : null;
 
                             return sendResponse(res, 200, true, 'Order fetched', {

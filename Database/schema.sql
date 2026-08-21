@@ -1,82 +1,37 @@
 -- ============================================================
--- SCHEMA v2 — guest-checkout storefront, no user accounts.
+-- COD + ADVANCE PAYMENT UPDATE
 --
--- Removed entirely: `users`, `addresses`, `cart_items`.
---   - There are no customer accounts anymore, so nothing needs a
---     user_id anywhere in this schema.
---   - The cart is not persisted server-side at all — it lives in the
---     browser (localStorage) via Frontend/assets/js/cart.js and is
---     only ever sent to the server once, as the `items` array in the
---     POST /api/orders request body.
---   - Shipping "address" is no longer a separate reusable row tied to
---     an account — it's one-time information the buyer types at
---     checkout, so it's stored directly on the order itself.
+-- What changed:
+--   - orders gets a new `payment_type` column: 'COD' (default) or
+--     'ADVANCE'. COD is chosen automatically unless the buyer
+--     switches to the Advance Payment tab at checkout.
+--   - payments.screenshot_key is now NULLable (it used to be
+--     mandatory when every order paid in advance). In practice a
+--     `payments` row is now ONLY ever created for ADVANCE orders —
+--     COD orders never get a payments row at all, since there is
+--     nothing to verify upfront.
+--   - Default shipping fee changed from 300 -> 200 (enforced in
+--     app code, routes/orderRoutes.js — not a column default here
+--     since shipping_price is captured per-order at checkout time).
 --
--- Kept as-is: `categories`, `products`, `product_media`,
--- `order_items`, `payments`, `admins`, `homepage_sliders`. Admin
--- accounts remain (staff still need to log in to the admin panel);
--- only *customer* accounts are gone.
+-- Scope of this migration: ONLY the order-related tables are
+-- dropped and recreated (payments -> order_items -> orders, in
+-- FK-safe order). categories, products, product_media, admins,
+-- homepage_sliders, and product_reviews are NOT touched and keep
+-- all existing data.
 --
--- v2.1: added `display_order` to `categories` (ONE combined sequence
--- across MEN + WOMEN together — decides which category shows where
--- overall) and to `products` (ONE sequence PER category_id — decides
--- which product shows where within its own category).
+-- WARNING: this DROPS all existing orders, order_items, and
+-- payments data. Export/back up first if you need to keep it.
 -- ============================================================
 
-
--- 1. CATEGORIES
-CREATE TABLE IF NOT EXISTS categories (
-    category_id INT AUTO_INCREMENT PRIMARY KEY,
-    gender ENUM('MEN','WOMEN') NOT NULL,
-    category_name VARCHAR(100) NOT NULL,
-    -- Combined (gender-agnostic) display sequence. Lower = shown earlier.
-    display_order INT NOT NULL DEFAULT 0
-);
-
--- 2. PRODUCTS
-CREATE TABLE IF NOT EXISTS products (
-    product_id INT AUTO_INCREMENT PRIMARY KEY,
-    category_id INT NOT NULL,
-    product_name VARCHAR(200) NOT NULL,
-    description TEXT,
-    price DECIMAL(12,2) NOT NULL,
-    discount_percentage DECIMAL(5,2) NOT NULL DEFAULT 0,
-    stock INT NOT NULL DEFAULT 0,
-    low_stock_threshold INT NOT NULL DEFAULT 3,
-    sku VARCHAR(50) UNIQUE,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    -- Per-category display sequence. Lower = shown earlier within
-    -- this product's category_id. Not comparable across categories.
-    display_order INT NOT NULL DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    CONSTRAINT fk_products_category
-        FOREIGN KEY (category_id)
-        REFERENCES categories(category_id)
-        ON DELETE RESTRICT
-        ON UPDATE CASCADE,
-    CONSTRAINT chk_discount_percentage
-        CHECK (discount_percentage >= 0 AND discount_percentage <= 100)
-);
-
--- 3. PRODUCT MEDIA
-CREATE TABLE IF NOT EXISTS product_media (
-    media_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    media_type ENUM('IMAGE','VIDEO') NOT NULL,
-    cloud_key VARCHAR(500) NOT NULL,
-    display_order INT DEFAULT 1,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id)
-        REFERENCES products(product_id)
-        ON DELETE CASCADE
-);
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+SET FOREIGN_KEY_CHECKS = 1;
 
 -- 4. ORDERS
--- Guest checkout: every field needed to fulfil the order (who it's for,
--- where it ships) lives directly on the row. No user_id, no address_id,
--- no FK to an accounts table of any kind.
-CREATE TABLE IF NOT EXISTS orders (
+CREATE TABLE orders (
     order_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     -- buyer / shipping info, captured fresh at checkout every time
@@ -87,6 +42,12 @@ CREATE TABLE IF NOT EXISTS orders (
     province VARCHAR(100) NOT NULL,
     postal_code VARCHAR(20) NOT NULL,
     address TEXT NOT NULL,
+
+    -- COD = pay the rider cash on delivery (default, no screenshot
+    --       required, no bank/wallet details shown to the buyer).
+    -- ADVANCE = bank/wallet transfer, verified upfront via a
+    --           mandatory payment screenshot.
+    payment_type ENUM('COD', 'ADVANCE') NOT NULL DEFAULT 'COD',
 
     subtotal DECIMAL(12,2) NOT NULL,
     shipping_price DECIMAL(12,2) NOT NULL,
@@ -106,7 +67,7 @@ CREATE TABLE IF NOT EXISTS orders (
 );
 
 -- 5. ORDER ITEMS
-CREATE TABLE IF NOT EXISTS order_items (
+CREATE TABLE order_items (
     item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL,
     product_id INT NOT NULL,
@@ -121,11 +82,14 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- 6. PAYMENTS
-CREATE TABLE IF NOT EXISTS payments (
+-- Only ever populated for ADVANCE orders. COD orders never get a row
+-- here — admin side treats "no payments row" + payment_type = 'COD'
+-- as "nothing to verify, proceed normally".
+CREATE TABLE payments (
     payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     order_id BIGINT NOT NULL UNIQUE,
     payment_method VARCHAR(50),
-    screenshot_key VARCHAR(500) NOT NULL,
+    screenshot_key VARCHAR(500) NULL,
     payment_status ENUM(
         'PENDING',
         'VERIFIED',
@@ -136,53 +100,3 @@ CREATE TABLE IF NOT EXISTS payments (
         REFERENCES orders(order_id)
         ON DELETE CASCADE
 );
-
--- 7. ADMINS  (unchanged — staff/admin accounts are not affected)
-CREATE TABLE IF NOT EXISTS admins (
-    admin_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    role ENUM(
-        'SUPER_ADMIN',
-        'STAFF'
-    ) DEFAULT 'STAFF',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- 8. HOMEPAGE SLIDERS  (unchanged)
-CREATE TABLE IF NOT EXISTS homepage_sliders (
-    slider_id INT AUTO_INCREMENT PRIMARY KEY,
-    cloud_key VARCHAR(500) NOT NULL,
-    caption VARCHAR(255),
-    display_order INT NOT NULL DEFAULT 1,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
-    uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-
--- 9. PRODUCT REVIEWS
-CREATE TABLE IF NOT EXISTS product_reviews (
-    review_id INT AUTO_INCREMENT PRIMARY KEY,
-    product_id INT NOT NULL,
-    reviewer_name VARCHAR(100) NOT NULL,
-    rating TINYINT UNSIGNED NOT NULL,
-    review_text TEXT,
-    is_approved BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-    CONSTRAINT fk_reviews_product
-        FOREIGN KEY (product_id)
-        REFERENCES products(product_id)
-        ON DELETE CASCADE,
-
-    CONSTRAINT chk_review_rating
-        CHECK (rating BETWEEN 1 AND 5)
-);
-
--- ============================================================
--- NOTE: if you're applying this to a database that already has
--- data in `categories` and `products`, run
--- migration_add_display_order.sql instead of re-running this file —
--- it adds the two new columns AND backfills sensible starting order
--- values so nothing on the storefront/admin visibly jumps around.
--- ============================================================

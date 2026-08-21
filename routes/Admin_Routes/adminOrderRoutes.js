@@ -10,13 +10,22 @@
 // below reads those columns straight off `o` instead of joining out to
 // tables that no longer exist.
 //
+// UPDATED — COD + ADVANCE PAYMENT:
+// Every order now carries `payment_type`: 'COD' or 'ADVANCE'.
+//   - ADVANCE orders behave exactly as before: a `payments` row exists
+//     and must be VERIFIED before the order can leave PENDING.
+//   - COD orders NEVER get a `payments` row (nothing is paid upfront —
+//     the rider collects cash on delivery), so the payment-verification
+//     gate on /advance is skipped entirely for them.
+//
 // GET   /admin/api/orders                     — list (filter by status/search, paginated)
 // GET   /admin/api/orders/:id                 — full detail (items + shipping info + payment)
 // PATCH /admin/api/orders/:id/advance          — move to the NEXT status in the flow
-//                                                 (blocked until payment is VERIFIED)
+//                                                 (blocked until payment is VERIFIED —
+//                                                  ADVANCE orders only; COD advances freely)
 // PATCH /admin/api/orders/:id/cancel           — cancel (only if not COMPLETED/CANCELLED)
 // PATCH /admin/api/orders/:id/payment          — { action: 'VERIFY' | 'REJECT' }
-//                                                 (REJECT also cancels the order)
+//                                                 (ADVANCE orders only; REJECT also cancels the order)
 
 const express = require('express');
 const router = express.Router();
@@ -70,10 +79,10 @@ router.get('/orders', (req, res) => {
     const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
     const sql = `
-        SELECT o.order_id, o.status, o.subtotal, o.shipping_price, o.total_price, o.created_at,
+        SELECT o.order_id, o.status, o.payment_type, o.subtotal, o.shipping_price, o.total_price, o.created_at,
                o.full_name AS customer_name, o.phone AS customer_phone, o.city,
-               p.payment_status, p.screenshot_key,
-               (SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
+               p.payment_status, p.screenshot_key
+               ,(SELECT COUNT(*) FROM order_items oi WHERE oi.order_id = o.order_id) AS item_count
         FROM orders o
         LEFT JOIN payments p ON p.order_id = o.order_id
         ${whereSql}
@@ -86,6 +95,8 @@ router.get('/orders', (req, res) => {
 
         const orders = rows.map(o => {
             const { screenshot_key, ...rest } = o;
+            // COD orders have no payments row at all — payment_status stays
+            // null/undefined for them, which the frontend treats as "n/a".
             return {
                 ...rest,
                 has_payment_screenshot: !!screenshot_key,
@@ -152,6 +163,7 @@ router.get('/orders/:id', (req, res) => {
                         };
                     });
 
+                    // Payments row only exists for ADVANCE orders — COD naturally yields null here.
                     conn.query(
                         `SELECT payment_method, screenshot_key, payment_status, uploaded_at
                          FROM payments WHERE order_id = ?`,
@@ -163,7 +175,7 @@ router.get('/orders/:id', (req, res) => {
                                 payment_method: payRows[0].payment_method,
                                 payment_status: payRows[0].payment_status,
                                 uploaded_at: payRows[0].uploaded_at,
-                                screenshot: keyToUrl(payRows[0].screenshot_key),
+                                screenshot: payRows[0].screenshot_key ? keyToUrl(payRows[0].screenshot_key) : null,
                             } : null;
 
                             return sendResponse(res, 200, true, 'Order fetched', {
@@ -181,22 +193,36 @@ router.get('/orders/:id', (req, res) => {
 });
 
 // PATCH /orders/:id/advance — move exactly one step forward, never a jump.
-// Gated: the order's payment must be VERIFIED before it can leave PENDING
-// and move toward COMPLETED.
+// Gated ONLY for ADVANCE orders: payment must be VERIFIED before the order
+// can leave PENDING and move toward COMPLETED. COD orders skip this gate
+// entirely since nothing is paid upfront — the rider collects on delivery.
 router.patch('/orders/:id/advance', (req, res) => {
     const { id } = req.params;
 
-    conn.query('SELECT status FROM orders WHERE order_id = ?', [id], (err, rows) => {
+    conn.query('SELECT status, payment_type FROM orders WHERE order_id = ?', [id], (err, rows) => {
         if (err) return sendResponse(res, 500, false, 'Database error', err.message);
         if (!rows.length) return sendResponse(res, 404, false, 'Order not found');
 
         const current = rows[0].status;
+        const paymentType = rows[0].payment_type;
         const next = nextStatus(current);
         if (!next) {
             return sendResponse(res, 400, false,
                 current === 'COMPLETED' ? 'Order is already completed' : 'Cancelled orders cannot be advanced');
         }
 
+        // COD: no payment to verify upfront, advance immediately.
+        if (paymentType === 'COD') {
+            conn.query('UPDATE orders SET status = ? WHERE order_id = ?', [next, id], (updErr) => {
+                if (updErr) return sendResponse(res, 500, false, 'Database error', updErr.message);
+                return sendResponse(res, 200, true, `Order moved to ${next}`, {
+                    order_id: id, status: next, next_status: nextStatus(next),
+                });
+            });
+            return;
+        }
+
+        // ADVANCE: payment must be VERIFIED first.
         conn.query('SELECT payment_status FROM payments WHERE order_id = ?', [id], (payErr, payRows) => {
             if (payErr) return sendResponse(res, 500, false, 'Database error', payErr.message);
 
@@ -237,6 +263,7 @@ router.patch('/orders/:id/cancel', (req, res) => {
 });
 
 // PATCH /orders/:id/payment   { action: 'VERIFY' | 'REJECT' }
+// ADVANCE orders only — COD orders have no payments row to act on.
 // Rejecting a payment also cancels the order (unless it's already in a
 // terminal state), since a rejected payment means the order can't proceed.
 router.patch('/orders/:id/payment', (req, res) => {

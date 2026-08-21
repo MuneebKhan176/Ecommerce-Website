@@ -18,6 +18,7 @@
     --red-dark: #8c0e16;
     --red-tint: rgba(179, 18, 28, 0.08);
     --green: #1e7e34;
+    --green-tint: rgba(30, 126, 52, 0.08);
     --amber: #b9791a;
     --safe-t: env(safe-area-inset-top, 0px);
     --safe-b: env(safe-area-inset-bottom, 0px);
@@ -83,15 +84,26 @@ body {
 .order-total { font-weight: 800; color: var(--red); font-size: 0.95rem; text-align: right; }
 .order-total .sub { font-size: 0.68rem; color: var(--muted); font-weight: 500; }
 
+.badge-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
 .status-pill {
     display: inline-block; font-size: 0.62rem; font-weight: 800; text-transform: uppercase;
-    letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px;
+    letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px;
 }
 .status-pill.PENDING { background: #fbeed6; color: var(--amber); }
 .status-pill.CONFIRMED, .status-pill.PACKED { background: #dde8f5; color: #2b5ea6; }
 .status-pill.SHIPPED, .status-pill.DELIVERED { background: #e2ecdf; color: var(--green); }
 .status-pill.COMPLETED { background: #1e7e34; color: #fff; }
 .status-pill.CANCELLED { background: #fbe6e6; color: var(--red); }
+
+/* payment-type badge: COD (green, cash) vs ADVANCE (red, bank) — mirrors
+   the same accent split used on the checkout page's payment tabs. */
+.paytype-pill {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.62rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.4px; padding: 3px 9px; border-radius: 999px;
+}
+.paytype-pill.COD { background: var(--green-tint); color: var(--green); }
+.paytype-pill.ADVANCE { background: var(--red-tint); color: var(--red); }
 
 /* ----- stepper ----- */
 .stepper { display: flex; margin-bottom: 12px; }
@@ -129,6 +141,7 @@ body {
 }
 .pay-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; border: 1px solid var(--border); cursor: zoom-in; flex-shrink: 0; }
 .no-screenshot { font-size: 0.72rem; color: var(--muted); font-style: italic; }
+.cod-row-note { font-size: 0.74rem; color: var(--green); font-weight: 700; display: flex; align-items: center; gap: 6px; }
 .pay-badge {
     font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px;
     padding: 3px 9px; border-radius: 999px; flex-shrink: 0;
@@ -149,7 +162,7 @@ body {
 .sheet-overlay.open { display: flex; }
 .sheet { background: var(--card); width: 100%; max-width: 640px; max-height: 88dvh; overflow-y: auto; border-radius: 20px 20px 0 0; padding: 20px 18px calc(24px + var(--safe-b)); }
 .sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 14px; }
-.sheet h2 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 14px; }
+.sheet h2 { font-family: 'Playfair Display', serif; font-size: 1.05rem; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .detail-section { margin-bottom: 16px; }
 .detail-section h3 { font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; color: var(--muted); margin-bottom: 8px; }
 .addr-block { font-size: 0.84rem; line-height: 1.6; }
@@ -292,6 +305,8 @@ function debounce(fn, delay = 350) {
 
 function money(n) { return 'Rs. ' + Number(n || 0).toLocaleString(); }
 
+function paymentTypeLabel(type) { return type === 'ADVANCE' ? 'Advance Payment' : 'Cash on Delivery'; }
+
 document.querySelectorAll('.status-tab').forEach(btn => {
     btn.addEventListener('click', () => {
         document.querySelectorAll('.status-tab').forEach(b => b.classList.remove('active'));
@@ -359,6 +374,7 @@ function removeCardIfFiltered(orderId) {
 function renderOrderCard(o) {
     const currentIdx = STATUS_FLOW.indexOf(o.status);
     const isCancelled = o.status === 'CANCELLED';
+    const isAdvance = o.payment_type === 'ADVANCE';
     const paymentVerified = o.payment_status === 'VERIFIED';
 
     const stepperHtml = isCancelled ? '' : `
@@ -378,7 +394,9 @@ function renderOrderCard(o) {
     } else if (isCancelled) {
         actionsHtml = `<span class="terminal-tag">Cancelled</span><button class="btn-view" onclick="viewOrder(${o.order_id})">View details</button>`;
     } else {
-        const advanceDisabled = !paymentVerified;
+        // COD orders have nothing to verify upfront — only ADVANCE orders
+        // gate the "Advance to..." button on a verified payment.
+        const advanceDisabled = isAdvance && !paymentVerified;
         actionsHtml = `
             <button class="btn-advance" ${advanceDisabled ? 'disabled' : ''} onclick="advanceOrder(${o.order_id})">Advance to ${o.next_status}</button>
             <button class="btn-cancel" onclick="cancelOrder(${o.order_id})">Cancel</button>
@@ -388,17 +406,33 @@ function renderOrderCard(o) {
         }
     }
 
-    const payThumb = o.payment_screenshot_url
-        ? `<img class="pay-thumb" src="${escapeHtml(o.payment_screenshot_url)}" onclick="openLightbox('${escapeHtml(o.payment_screenshot_url)}')" />`
-        : '<span class="no-screenshot">No screenshot</span>';
-
-    const payStatus = o.payment_status || 'PENDING';
-    const payActions = (payStatus === 'PENDING' && o.has_payment_screenshot)
-        ? `<div class="pay-actions">
-             <button class="btn-verify" onclick="setPayment(${o.order_id}, 'VERIFY')">Verify</button>
-             <button class="btn-reject" onclick="setPayment(${o.order_id}, 'REJECT')">Reject</button>
-           </div>`
-        : '';
+    // Payment row differs by type: ADVANCE shows the screenshot + verify/reject
+    // controls (as before); COD shows a simple "collect on delivery" note and
+    // has no screenshot/verification step at all.
+    let paymentRowHtml;
+    if (isAdvance) {
+        const payThumb = o.payment_screenshot_url
+            ? `<img class="pay-thumb" src="${escapeHtml(o.payment_screenshot_url)}" onclick="openLightbox('${escapeHtml(o.payment_screenshot_url)}')" />`
+            : '<span class="no-screenshot">No screenshot</span>';
+        const payStatus = o.payment_status || 'PENDING';
+        const payActions = (payStatus === 'PENDING' && o.has_payment_screenshot)
+            ? `<div class="pay-actions">
+                 <button class="btn-verify" onclick="setPayment(${o.order_id}, 'VERIFY')">Verify</button>
+                 <button class="btn-reject" onclick="setPayment(${o.order_id}, 'REJECT')">Reject</button>
+               </div>`
+            : '';
+        paymentRowHtml = `
+            <div class="payment-row">
+                ${payThumb}
+                <span class="pay-badge ${payStatus}">${payStatus}</span>
+                ${payActions}
+            </div>`;
+    } else {
+        paymentRowHtml = `
+            <div class="payment-row">
+                <span class="cod-row-note">&#128181; Collect ${money(o.total_price)} cash on delivery</span>
+            </div>`;
+    }
 
     return `
         <div class="order-card" id="order-${o.order_id}">
@@ -410,15 +444,14 @@ function renderOrderCard(o) {
                 </div>
                 <div class="order-total">${money(o.total_price)}<div class="sub">total</div></div>
             </div>
-            <span class="status-pill ${o.status}">${o.status}</span>
+            <div class="badge-row">
+                <span class="status-pill ${o.status}">${o.status}</span>
+                <span class="paytype-pill ${o.payment_type}">${isAdvance ? '&#127974;' : '&#128181;'} ${paymentTypeLabel(o.payment_type)}</span>
+            </div>
             ${stepperHtml}
             <div class="order-actions">${actionsHtml}</div>
             ${hintHtml}
-            <div class="payment-row">
-                ${payThumb}
-                <span class="pay-badge ${payStatus}">${payStatus}</span>
-                ${payActions}
-            </div>
+            ${paymentRowHtml}
         </div>
     `;
 }
@@ -494,10 +527,14 @@ async function viewOrder(id) {
     if (!res.success) return showToast(res.message);
 
     const o = res.data;
-    document.getElementById('detailTitle').textContent = `Order #${o.order_id}`;
+    const isAdvance = o.payment_type === 'ADVANCE';
+    document.getElementById('detailTitle').innerHTML = `
+        Order #${o.order_id}
+        <span class="paytype-pill ${o.payment_type}" style="font-family:'Inter',sans-serif;">${isAdvance ? '&#127974;' : '&#128181;'} ${paymentTypeLabel(o.payment_type)}</span>
+    `;
     document.getElementById('detailAddress').innerHTML = `
-        ${escapeHtml(o.ship_name)}<br/>
-        ${escapeHtml(o.ship_phone || '')}<br/>
+        ${escapeHtml(o.full_name)}<br/>
+        ${escapeHtml(o.phone || '')}<br/>
         ${escapeHtml(o.address)}<br/>
         ${escapeHtml(o.city)}, ${escapeHtml(o.province)} ${escapeHtml(o.postal_code)}
     `;

@@ -10,7 +10,7 @@
 :root {
     --bg: #f6f1e7; --card: #ffffff; --ink: #141414; --muted: #746f66; --border: #e7e0d3;
     --red: #b3121c; --red-dark: #8c0e16; --red-tint: rgba(179, 18, 28, 0.08);
-    --green: #1e7e34;
+    --green: #1e7e34; --green-tint: rgba(30, 126, 52, 0.08);
     --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
 }
 html, body { height: 100%; }
@@ -69,6 +69,36 @@ button { cursor: pointer; font-family: inherit; }
 
 .summary-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 5px 0; color: var(--muted); }
 .summary-row.total { font-size: 1rem; font-weight: 800; color: var(--ink); border-top: 1px solid var(--border); margin-top: 6px; padding-top: 10px; }
+
+/* ----- payment method tabs (COD / Advance) ----- */
+.payment-tabs {
+    display: flex; gap: 4px; background: #faf7f0; padding: 4px; border-radius: 11px;
+    border: 1px solid var(--border); margin-bottom: 16px;
+}
+.payment-tab {
+    flex: 1; padding: 10px 8px; border-radius: 8px; border: none; background: transparent;
+    font-size: 0.78rem; font-weight: 800; font-family: inherit; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.payment-tab.active { background: var(--red); color: #fff; }
+.payment-tab .tab-icon { font-size: 0.9rem; line-height: 1; }
+
+/* ----- COD panel: deliberately different from the bank-account cards, same theme ----- */
+.cod-card {
+    text-align: center; padding: 22px 16px; border: 1.5px dashed var(--border); border-radius: 12px;
+    background: var(--green-tint);
+}
+.cod-icon {
+    width: 50px; height: 50px; border-radius: 50%; background: #fff; border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 12px;
+}
+.cod-title { font-family: 'Playfair Display', serif; font-weight: 800; font-size: 1.02rem; margin-bottom: 6px; color: var(--green); }
+.cod-text { font-size: 0.8rem; color: var(--muted); line-height: 1.55; max-width: 380px; margin: 0 auto; }
+.cod-note {
+    margin-top: 14px; font-size: 0.72rem; color: var(--muted); background: #fff;
+    border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; display: inline-block;
+}
 
 .payment-instructions { font-size: 0.82rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 .payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -157,46 +187,74 @@ button { cursor: pointer; font-family: inherit; }
             <div class="section-title">Order Summary</div>
             <div class="card-box" id="orderItemsBox"></div>
 
-            <div class="section-title">Payment Details</div>
-            <div class="card-box payment-info-box">
-                <p class="payment-instructions">
-                    Transfer the total amount to one of the accounts below, then upload your payment
-                    screenshot so we can verify it.
-                </p>
-                <div class="payment-methods">
-                    <div class="payment-method">
-                        <div class="pm-header">
-                            <span class="pm-name">Meezan Bank</span>
-                            <span class="pm-badge">Bank Transfer</span>
-                        </div>
-                        <div class="pm-row"><span>Account Title</span><strong>M Haseeb Sarfraz</strong></div>
-                        <div class="pm-row">
-                            <span>Account Number</span>
-                            <span class="pm-acc-wrap">
-                                <strong>05130110564428</strong>
-                                <button type="button" class="copy-icon-btn" onclick="copyText('05130110564428', this)" aria-label="Copy account number" title="Copy account number">
-                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                </button>
-                            </span>
-                        </div>
-                        <div class="pm-row"><span>Bank</span><strong>Meezan Bank Limited</strong></div>
+            <div class="section-title">Payment Method</div>
+            <div class="card-box">
+                <div class="payment-tabs" id="paymentTabs">
+                    <button type="button" class="payment-tab active" data-type="COD">
+                        <span class="tab-icon">&#128181;</span> Cash on Delivery
+                    </button>
+                    <button type="button" class="payment-tab" data-type="ADVANCE">
+                        <span class="tab-icon">&#127974;</span> Advance Payment
+                    </button>
+                </div>
+
+                <!-- COD: intentionally no account details shown here. -->
+                <div id="codPanel">
+                    <div class="cod-card">
+                        <div class="cod-icon">&#128176;</div>
+                        <div class="cod-title">Pay on Delivery</div>
+                        <p class="cod-text">Keep the total amount ready in cash — you'll pay our rider directly when your order arrives at your doorstep. No advance payment or screenshot needed.</p>
+                        <div class="cod-note">Selected by default</div>
                     </div>
-                    <div class="payment-method">
-                        <div class="pm-header">
-                            <span class="pm-name">JazzCash App</span>
-                            <span class="pm-badge">Mobile Wallet</span>
+                </div>
+
+                <!-- Advance: bank/wallet accounts + mandatory screenshot upload. -->
+                <div id="advancePanel" style="display:none;">
+                    <p class="payment-instructions">
+                        Transfer the total amount to one of the accounts below, then upload your payment
+                        screenshot so we can verify it.
+                    </p>
+                    <div class="payment-methods">
+                        <div class="payment-method">
+                            <div class="pm-header">
+                                <span class="pm-name">Meezan Bank</span>
+                                <span class="pm-badge">Bank Transfer</span>
+                            </div>
+                            <div class="pm-row"><span>Account Title</span><strong>M Haseeb Sarfraz</strong></div>
+                            <div class="pm-row">
+                                <span>Account Number</span>
+                                <span class="pm-acc-wrap">
+                                    <strong>05130110564428</strong>
+                                    <button type="button" class="copy-icon-btn" onclick="copyText('05130110564428', this)" aria-label="Copy account number" title="Copy account number">
+                                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="pm-row"><span>Bank</span><strong>Meezan Bank Limited</strong></div>
                         </div>
-                        <div class="pm-row"><span>Account Title</span><strong>Muhammad Sarfraz</strong></div>
-                        <div class="pm-row">
-                            <span>Account Number</span>
-                            <span class="pm-acc-wrap">
-                                <strong>03000671070</strong>
-                                <button type="button" class="copy-icon-btn" onclick="copyText('03000671070', this)" aria-label="Copy account number" title="Copy account number">
-                                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-                                </button>
-                            </span>
+                        <div class="payment-method">
+                            <div class="pm-header">
+                                <span class="pm-name">JazzCash App</span>
+                                <span class="pm-badge">Mobile Wallet</span>
+                            </div>
+                            <div class="pm-row"><span>Account Title</span><strong>Muhammad Sarfraz</strong></div>
+                            <div class="pm-row">
+                                <span>Account Number</span>
+                                <span class="pm-acc-wrap">
+                                    <strong>03000671070</strong>
+                                    <button type="button" class="copy-icon-btn" onclick="copyText('03000671070', this)" aria-label="Copy account number" title="Copy account number">
+                                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                                    </button>
+                                </span>
+                            </div>
+                            <div class="pm-row"><span>Service</span><strong>JazzCash</strong></div>
                         </div>
-                        <div class="pm-row"><span>Service</span><strong>JazzCash</strong></div>
+                    </div>
+
+                    <div class="form-group" style="margin-top: 14px;">
+                        <label>Payment Screenshot <span class="req-star">*</span></label>
+                        <div class="upload-grid" id="uploadGrid"></div>
+                        <div class="upload-hint">Upload a screenshot of your transaction. Remove it to upload a different one.</div>
                     </div>
                 </div>
             </div>
@@ -246,12 +304,6 @@ button { cursor: pointer; font-family: inherit; }
                     <div class="form-group">
                         <label>Full Address <span class="req-star">*</span></label>
                         <textarea name="address" rows="3" required minlength="8"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label>Payment Screenshot <span class="req-star">*</span></label>
-                        <div class="upload-grid" id="uploadGrid"></div>
-                        <div class="upload-hint">Upload a screenshot of your transaction. Remove it to upload a different one.</div>
                     </div>
 
                     <button type="submit" class="place-order-btn" id="placeOrderBtn">Place Order</button>
@@ -313,7 +365,7 @@ function sanitizePhoneInput(el) {
 document.querySelectorAll('input[name="phone"]').forEach(sanitizePhoneInput);
 
 // Mirrors SHIPPING_PRICE in routes/orderRoutes.js — keep these in sync.
-const SHIPPING_PRICE = 300;
+const SHIPPING_PRICE = 200;
 
 // No accounts, no server cart — this page reads whichever staging state
 // cart.js's handleBuyNow()/handleCheckoutFromCart() set before redirecting here.
@@ -321,17 +373,29 @@ const SHIPPING_PRICE = 300;
 // "Buy Now" item ('buy_now_item') in sessionStorage — never localStorage.
 // This page must read/write the SAME storage cart.js uses, or the staged
 // item silently "disappears" here even though handleBuyNow() saved it
-// correctly. (This used to read/clear 'buy_now_item' from localStorage,
-// which meant it could never see what handleBuyNow() had staged — that
-// was the root cause of both the product page and the homepage "Buy Now"
-// button leading to an empty checkout. Fixed to use sessionStorage,
-// matching cart.js.)
+// correctly.
 const params = new URLSearchParams(window.location.search);
 const mode = params.get('mode'); // 'buy_now' | 'cart'
 
 let lineItems = [];      // [{product_id, quantity}] — what actually gets submitted
 let selectedItems = [];  // hydrated with product details, for display + qty editing
-let paymentFile = null;  // single File object selected as payment proof
+let paymentFile = null;  // single File object selected as payment proof (ADVANCE only)
+
+// ----- payment type: COD (default) vs ADVANCE -----
+let paymentType = 'COD';
+
+function setPaymentType(type) {
+    paymentType = type;
+    document.querySelectorAll('.payment-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === type);
+    });
+    document.getElementById('codPanel').style.display = type === 'COD' ? '' : 'none';
+    document.getElementById('advancePanel').style.display = type === 'ADVANCE' ? '' : 'none';
+}
+
+document.querySelectorAll('.payment-tab').forEach(btn => {
+    btn.addEventListener('click', () => setPaymentType(btn.dataset.type));
+});
 
 function readStagedItems() {
     if (mode === 'buy_now') {
@@ -442,9 +506,10 @@ async function loadSelectedItems() {
     renderOrderItems();
 }
 
-/* ----- single payment screenshot ----- */
+/* ----- single payment screenshot (ADVANCE only) ----- */
 function renderUploadGrid() {
     const grid = document.getElementById('uploadGrid');
+    if (!grid) return;
     grid.innerHTML = '';
 
     if (paymentFile) {
@@ -514,7 +579,10 @@ function validateForm(form) {
         }
     });
 
-    if (!paymentFile) errors.push('Upload a payment screenshot');
+    // Screenshot is only required when the buyer chose Advance Payment.
+    if (paymentType === 'ADVANCE' && !paymentFile) {
+        errors.push('Upload a payment screenshot for Advance Payment');
+    }
 
     return errors;
 }
@@ -544,7 +612,10 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
     fd.append('postal_code', form.postal_code.value.trim());
     fd.append('address', form.address.value.trim());
     fd.append('items', JSON.stringify(selectedItems.map(i => ({ product_id: i.product_id, quantity: i.quantity }))));
-    fd.append('screenshot', paymentFile); // matches upload.single('screenshot') on the backend
+    fd.append('payment_type', paymentType);
+    if (paymentType === 'ADVANCE' && paymentFile) {
+        fd.append('screenshot', paymentFile); // matches upload.single('screenshot') on the backend
+    }
 
     const res = await apiFetch('/api/orders', { method: 'POST', body: fd });
 
@@ -556,11 +627,12 @@ document.getElementById('checkoutForm').addEventListener('submit', async (e) => 
 
         const orderId = res.data && res.data.order_id;
         const phoneUsed = form.phone.value.trim();
+        const isCod = (res.data && res.data.payment_type) === 'COD';
         document.getElementById('pageWrap').innerHTML = `
             <div class="success-screen">
-                <div class="check-circle">&#10003;</div>
+                <div class="check-circle">${isCod ? '&#128181;' : '&#10003;'}</div>
                 <h2>Order Placed!</h2>
-                <p>${escapeHtml(res.message || 'We will verify your payment shortly.')}</p>
+                <p>${escapeHtml(res.message || (isCod ? 'Pay cash to the rider on delivery.' : 'We will verify your payment shortly.'))}</p>
                 ${orderId ? `<div class="order-ref">Order #${orderId} — keep this with phone ${escapeHtml(phoneUsed)} to check your order status</div><br/>` : ''}
                 <a class="btn-link" href="/">Continue Shopping</a>
             </div>
