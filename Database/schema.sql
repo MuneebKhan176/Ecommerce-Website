@@ -4,21 +4,32 @@
 -- belong under Men or Women specifically.
 --
 -- Builds on v3 (guest checkout, no user accounts, COD + Advance
--- Payment). Everything from v3 is unchanged except:
+-- Payment). The only structural change from v3 is:
 --   - categories.gender ENUM widened to ('MEN','WOMEN','OTHERS').
 --   - Nothing else changes: `products` has no gender column of its
 --     own — it always inherits gender through category_id — so no
 --     product-table change is needed.
 --
--- WARNING: same as v3 — the DROP statements below only affect
--- `payments`, `order_items`, and `orders` (in FK-safe order).
--- `categories`, `products`, `product_media`, `admins`,
--- `homepage_sliders`, and `product_reviews` are left untouched
--- (and NOT dropped). The gender enum on an existing `categories`
--- table is widened in place via ALTER TABLE further down — this is
--- safe to re-run and does not affect existing MEN/WOMEN rows.
+-- NOTE: this version drops and recreates ALL tables (categories,
+-- products, product_media, orders, order_items, payments, admins,
+-- homepage_sliders, product_reviews) — this is a full reset, not a
+-- selective migration. Everything in every table is wiped on each
+-- run. Tables are dropped in FK-safe order (children before
+-- parents), with FOREIGN_KEY_CHECKS disabled as a safety net
+-- regardless of order.
 -- ============================================================
+SeT FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS payments;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS product_reviews;
+DROP TABLE IF EXISTS product_media;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS categories;
+DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS homepage_sliders;
 
+Set foreign_key_checks = 1;
 
 -- 1. CATEGORIES
 CREATE TABLE IF NOT EXISTS categories (
@@ -28,12 +39,6 @@ CREATE TABLE IF NOT EXISTS categories (
     -- Combined (gender-agnostic) display sequence. Lower = shown earlier.
     display_order INT NOT NULL DEFAULT 0
 );
-
--- If `categories` already existed before this file ran (from v2/v3),
--- the CREATE TABLE IF NOT EXISTS above was a no-op, so the enum needs
--- widening explicitly. Re-running this on a table that already has
--- 'OTHERS' is harmless.
-ALTER TABLE categories MODIFY COLUMN gender ENUM('MEN','WOMEN','OTHERS') NOT NULL;
 
 -- 2. PRODUCTS (unchanged from v3 — gender always comes via category_id)
 CREATE TABLE IF NOT EXISTS products (
