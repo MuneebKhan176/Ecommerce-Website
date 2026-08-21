@@ -902,6 +902,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, input:focus-visible
             <button type="button" class="gender-tab active" data-gender="">All</button>
             <button type="button" class="gender-tab" data-gender="WOMEN">Women</button>
             <button type="button" class="gender-tab" data-gender="MEN">Men</button>
+            <button type="button" class="gender-tab" data-gender="OTHERS">Others</button>
         </div>
 
         <div class="category-tabs-wrap">
@@ -1079,7 +1080,7 @@ const CATEGORY_BATCH = 2;
 
 let allCategories = [];
 // Default gender view is now "All" (empty string = no gender filter)
-// so the shop opens showing both Men's and Women's categories together.
+// so the shop opens showing every category together (Men, Women, Others).
 let currentGender = '';
 let currentCategoryId = '';
 

@@ -185,7 +185,9 @@ body {
 }
 
 /* Header block — no image, just a soft gender-tinted panel with a big
-   initial, same "flows into the bordered body" treatment as products */
+   initial, same "flows into the bordered body" treatment as products.
+   Added a third tint (gender-OTHERS) for the new unisex/accessories
+   bucket so it doesn't fall back to an unstyled default background. */
 .category-card-header {
     position: relative;
     width: 100%;
@@ -199,6 +201,7 @@ body {
 
 .category-card-header.gender-MEN { background: linear-gradient(135deg, #e6edfb, #f6f1e7); }
 .category-card-header.gender-WOMEN { background: linear-gradient(135deg, #fbe6f0, #f6f1e7); }
+.category-card-header.gender-OTHERS { background: linear-gradient(135deg, #fdf1dc, #f6f1e7); }
 
 .category-card-header .initial {
     font-family: 'Playfair Display', serif;
@@ -221,7 +224,7 @@ body {
 }
 
 /* Combined-sequence position badge, top-left, so it's visually clear
-   that this number is shared across both genders. */
+   that this number is shared across all genders. */
 .category-order-badge {
     position: absolute;
     top: 8px;
@@ -397,8 +400,9 @@ body {
     color: var(--ink);
 }
 
-/* Compact gender toggle in the form — same pattern as Add Product */
-.gender-toggle { display: flex; gap: 8px; }
+/* Compact gender toggle in the form — same pattern as Add Product.
+   Allowed to wrap now that there are three buttons instead of two. */
+.gender-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .gender-btn {
     flex: 0 0 auto;
@@ -471,8 +475,8 @@ body {
 
         <p class="order-hint">
             The number badge on each card is its position in one combined display order
-            shared by Men and Women categories together. Use ▲ ▼ to move a category earlier
-            or later — it works the same no matter which tab you're viewing.
+            shared by Men, Women, and Others categories together. Use ▲ ▼ to move a category
+            earlier or later — it works the same no matter which tab you're viewing.
         </p>
 
         <div class="tabs-row">
@@ -480,6 +484,7 @@ body {
                 <button type="button" class="gender-tab active" data-gender="">All</button>
                 <button type="button" class="gender-tab" data-gender="MEN">Men</button>
                 <button type="button" class="gender-tab" data-gender="WOMEN">Women</button>
+                <button type="button" class="gender-tab" data-gender="OTHERS">Others</button>
             </div>
             <button type="button" class="add-category-btn" id="addBtn">+ Add Category</button>
         </div>
@@ -500,6 +505,7 @@ body {
                 <div class="gender-toggle">
                     <button type="button" class="gender-btn" id="formGenderMen" data-gender="MEN">Men</button>
                     <button type="button" class="gender-btn" id="formGenderWomen" data-gender="WOMEN">Women</button>
+                    <button type="button" class="gender-btn" id="formGenderOthers" data-gender="OTHERS">Others</button>
                 </div>
             </div>
 
@@ -571,6 +577,16 @@ body {
         let listGender = '';
         let formGender = '';
 
+        // Maps a category's gender to the single letter shown on its card
+        // header. Falls back to the gender's own first letter for any
+        // future value instead of silently defaulting to 'W'.
+        function genderInitial(gender) {
+            if (gender === 'MEN') return 'M';
+            if (gender === 'WOMEN') return 'W';
+            if (gender === 'OTHERS') return 'O';
+            return (gender || '?').charAt(0).toUpperCase();
+        }
+
         async function loadCategories() {
             document.getElementById('grid').innerHTML = '<p class="state-msg">Loading…</p>';
             const res = await adminFetch(API);
@@ -619,7 +635,7 @@ body {
                 <div class="category-card">
                     <div class="category-card-header gender-${c.gender}">
                         <span class="category-order-badge">#${position}</span>
-                        <span class="initial">${c.gender === 'MEN' ? 'M' : 'W'}</span>
+                        <span class="initial">${genderInitial(c.gender)}</span>
                         <span class="category-count-badge">${c.product_count} product${c.product_count === 1 ? '' : 's'}</span>
                     </div>
                     <div class="category-card-body">
@@ -639,7 +655,7 @@ body {
             }).join('');
         }
 
-        // ----- reorder (combined sequence, across both genders) -----
+        // ----- reorder (combined sequence, across all genders) -----
         async function moveCategory(id, direction) {
             const res = await adminFetch(`${API}/${id}/move`, {
                 method: 'PATCH',
@@ -656,10 +672,12 @@ body {
             formGender = gender;
             document.getElementById('formGenderMen').classList.toggle('active', gender === 'MEN');
             document.getElementById('formGenderWomen').classList.toggle('active', gender === 'WOMEN');
+            document.getElementById('formGenderOthers').classList.toggle('active', gender === 'OTHERS');
         }
 
         document.getElementById('formGenderMen').addEventListener('click', () => setFormGender('MEN'));
         document.getElementById('formGenderWomen').addEventListener('click', () => setFormGender('WOMEN'));
+        document.getElementById('formGenderOthers').addEventListener('click', () => setFormGender('OTHERS'));
 
         function openCreate() {
             document.getElementById('formTitle').textContent = 'New Category';
@@ -685,7 +703,7 @@ body {
                 gender: formGender,
                 category_name: document.getElementById('categoryName').value.trim(),
             };
-            if (!payload.gender) return showToast('Choose Men or Women first');
+            if (!payload.gender) return showToast('Choose Men, Women, or Others first');
             if (!payload.category_name) return showToast('Category name is required');
 
             const res = await adminFetch(id ? `${API}/${id}` : API, {

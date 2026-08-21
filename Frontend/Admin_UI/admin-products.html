@@ -708,7 +708,7 @@ body {
 .discount-preview strong { color: var(--red); }
 
 /* Compact gender toggle for the form */
-.gender-toggle { display: flex; gap: 8px; }
+.gender-toggle { display: flex; gap: 8px; flex-wrap: wrap; }
 
 .gender-btn {
     flex: 0 0 auto;
@@ -865,6 +865,7 @@ body {
                 <button type="button" class="gender-tab active" data-gender="">All</button>
                 <button type="button" class="gender-tab" data-gender="MEN">Men</button>
                 <button type="button" class="gender-tab" data-gender="WOMEN">Women</button>
+                <button type="button" class="gender-tab" data-gender="OTHERS">Others</button>
             </div>
             <button type="button" class="add-product-btn" id="addBtn">+ Add Product</button>
         </div>
@@ -900,6 +901,7 @@ body {
                 <div class="gender-toggle">
                     <button type="button" class="gender-btn" id="formGenderMen" data-gender="MEN">Men</button>
                     <button type="button" class="gender-btn" id="formGenderWomen" data-gender="WOMEN">Women</button>
+                    <button type="button" class="gender-btn" id="formGenderOthers" data-gender="OTHERS">Others</button>
                 </div>
             </div>
 
@@ -1375,6 +1377,7 @@ body {
             formGender = gender;
             document.getElementById('formGenderMen').classList.toggle('active', gender === 'MEN');
             document.getElementById('formGenderWomen').classList.toggle('active', gender === 'WOMEN');
+            document.getElementById('formGenderOthers').classList.toggle('active', gender === 'OTHERS');
 
             const select = document.getElementById('categorySelect');
             if (!gender) {
@@ -1391,6 +1394,7 @@ body {
 
         document.getElementById('formGenderMen').addEventListener('click', () => setFormGender('MEN'));
         document.getElementById('formGenderWomen').addEventListener('click', () => setFormGender('WOMEN'));
+        document.getElementById('formGenderOthers').addEventListener('click', () => setFormGender('OTHERS'));
 
         // "+" button next to the category select — jumps straight to the
         // categories admin page so the admin can create the missing
@@ -1511,7 +1515,7 @@ body {
             const discountPercentage = document.getElementById('discountPercentage').value || '0';
             const categoryId = document.getElementById('categorySelect').value;
 
-            if (!formGender) return showToast('Choose Men or Women first');
+            if (!formGender) return showToast('Choose Men, Women, or Others first');
             if (!name || !price || !categoryId) return showToast('Name, price, and category are required');
             if (Number(discountPercentage) < 0 || Number(discountPercentage) > 100) return showToast('Discount must be between 0 and 100');
 

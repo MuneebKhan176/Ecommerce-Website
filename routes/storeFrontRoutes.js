@@ -39,12 +39,11 @@ function withDiscount(p) {
     };
 }
 
-// GET /categories — populates the homepage's category dropdown/filters
 // GET /categories — populates the homepage's category dropdown/filters.
 // Sorted by the SAME combined display_order the admin panel manages
-// (adminCategoryRoutes.js) — one sequence shared across MEN + WOMEN
-// together — so category blocks on the homepage appear in the order an
-// admin arranged them, not alphabetically.
+// (adminCategoryRoutes.js) — one sequence shared across MEN + WOMEN +
+// OTHERS together — so category blocks on the homepage appear in the
+// order an admin arranged them, not alphabetically.
 
 router.get('/categories', (req, res) => {
     conn.query(
@@ -59,7 +58,7 @@ router.get('/categories', (req, res) => {
         }
     );
 });
-// GET /products?gender=MEN|WOMEN&category_id=&featured=true&search=&page=&limit=&ids=
+// GET /products?gender=MEN|WOMEN|OTHERS&category_id=&featured=true&search=&page=&limit=&ids=
 // Always scoped to active products. `ids=3,7,12` hydrates a known set of
 // product ids in one round trip (used by the cart drawer / checkout page
 // to resolve whatever product_ids are sitting in sessionStorage) and
@@ -73,6 +72,11 @@ router.get('/categories', (req, res) => {
 // root cause of checkout/cart-drawer product lookups silently coming
 // back empty. Built explicit `IN (?,?,?)` placeholders instead — this
 // works regardless of driver.
+//
+// UPDATED FOR v4 SCHEMA: the gender filter now accepts 'OTHERS' (the
+// unisex/accessories bucket — Blankets, Shawls, Bedsheets, etc.) in
+// addition to MEN/WOMEN, matching the widened categories.gender ENUM
+// and the new "Others" tab on the storefront.
 //
 // IMPORTANT: this SELECT must include `p.is_active`. checkout.html (and
 // the frontend generally) filters hydrated products on
@@ -108,7 +112,7 @@ router.get('/products', (req, res) => {
             where.push('(p.product_name LIKE ? OR p.sku LIKE ?)');
             params.push(`%${search}%`, `%${search}%`);
         }
-        if (gender && ['MEN', 'WOMEN'].includes(gender)) {
+        if (gender && ['MEN', 'WOMEN', 'OTHERS'].includes(gender)) {
             where.push('c.gender = ?');
             params.push(gender);
         }
@@ -229,7 +233,8 @@ function attachFirstImages(products, cb) {
 //   - rating_summary (average_rating, review_count) so the page can
 //     show stars without a second round trip on first paint
 //   - related_products: other active products in the same category,
-//     current product excluded
+//     current product excluded (works the same regardless of the
+//     category's gender bucket — MEN, WOMEN, or OTHERS)
 router.get('/products/:id', (req, res) => {
     const { id } = req.params;
 

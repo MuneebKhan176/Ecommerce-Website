@@ -70,7 +70,10 @@ router.get('/products', (req, res) => {
         where.push('(p.product_name LIKE ? OR p.sku LIKE ?)');
         params.push(`%${search}%`, `%${search}%`);
     }
-    if (gender && ['MEN', 'WOMEN'].includes(gender)) {
+    // Widened to include 'OTHERS' (unisex accessories bucket) alongside
+    // MEN/WOMEN — keeps this endpoint in sync with the categories.gender
+    // ENUM from schema v4.
+    if (gender && ['MEN', 'WOMEN', 'OTHERS'].includes(gender)) {
         where.push('c.gender = ?');
         params.push(gender);
     }

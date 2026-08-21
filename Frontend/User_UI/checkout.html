@@ -135,11 +135,18 @@ button { cursor: pointer; font-family: inherit; }
 .form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 @media (max-width: 480px) { .form-row-2 { grid-template-columns: 1fr; } }
 
+/* ----- screenshot upload group, lives INSIDE the shipping form, only
+   shown when Advance Payment is the selected tab ----- */
+.screenshot-group {
+    border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 14px;
+    background: var(--red-tint);
+}
+.screenshot-group label { color: var(--red); }
 .upload-grid { display: flex; flex-wrap: wrap; gap: 10px; }
 .upload-tile { width: 72px; height: 72px; border-radius: 10px; position: relative; overflow: hidden; flex-shrink: 0; }
 .upload-tile.add-tile {
     border: 2px dashed var(--border); display: flex; align-items: center; justify-content: center;
-    font-size: 1.5rem; color: var(--muted); cursor: pointer; background: #faf7f0;
+    font-size: 1.5rem; color: var(--muted); cursor: pointer; background: #fff;
 }
 .upload-tile.add-tile:hover { border-color: var(--red); color: var(--red); }
 .upload-tile.add-tile input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
@@ -208,11 +215,13 @@ button { cursor: pointer; font-family: inherit; }
                     </div>
                 </div>
 
-                <!-- Advance: bank/wallet accounts + mandatory screenshot upload. -->
+                <!-- Advance: bank/wallet accounts. The screenshot upload itself
+                     now lives inside the Shipping Details form (right column)
+                     so it's submitted together with the rest of the form. -->
                 <div id="advancePanel" style="display:none;">
                     <p class="payment-instructions">
                         Transfer the total amount to one of the accounts below, then upload your payment
-                        screenshot so we can verify it.
+                        screenshot in the form to the right so we can verify it.
                     </p>
                     <div class="payment-methods">
                         <div class="payment-method">
@@ -249,12 +258,6 @@ button { cursor: pointer; font-family: inherit; }
                             </div>
                             <div class="pm-row"><span>Service</span><strong>JazzCash</strong></div>
                         </div>
-                    </div>
-
-                    <div class="form-group" style="margin-top: 14px;">
-                        <label>Payment Screenshot <span class="req-star">*</span></label>
-                        <div class="upload-grid" id="uploadGrid"></div>
-                        <div class="upload-hint">Upload a screenshot of your transaction. Remove it to upload a different one.</div>
                     </div>
                 </div>
             </div>
@@ -304,6 +307,14 @@ button { cursor: pointer; font-family: inherit; }
                     <div class="form-group">
                         <label>Full Address <span class="req-star">*</span></label>
                         <textarea name="address" rows="3" required minlength="8"></textarea>
+                    </div>
+
+                    <!-- Payment screenshot — inside the form itself, only visible
+                         (and only required) when Advance Payment is selected. -->
+                    <div class="form-group screenshot-group" id="screenshotFormGroup" style="display:none;">
+                        <label>Payment Screenshot <span class="req-star">*</span></label>
+                        <div class="upload-grid" id="uploadGrid"></div>
+                        <div class="upload-hint">Upload a screenshot of your transaction. Remove it to upload a different one.</div>
                     </div>
 
                     <button type="submit" class="place-order-btn" id="placeOrderBtn">Place Order</button>
@@ -391,6 +402,15 @@ function setPaymentType(type) {
     });
     document.getElementById('codPanel').style.display = type === 'COD' ? '' : 'none';
     document.getElementById('advancePanel').style.display = type === 'ADVANCE' ? '' : 'none';
+    // The screenshot field lives inside the shipping form and only
+    // appears (and is only required) for Advance Payment.
+    document.getElementById('screenshotFormGroup').style.display = type === 'ADVANCE' ? '' : 'none';
+    if (type === 'COD') {
+        // Switching back to COD clears any staged screenshot so a
+        // leftover file can't get submitted silently.
+        paymentFile = null;
+        renderUploadGrid();
+    }
 }
 
 document.querySelectorAll('.payment-tab').forEach(btn => {
@@ -506,7 +526,7 @@ async function loadSelectedItems() {
     renderOrderItems();
 }
 
-/* ----- single payment screenshot (ADVANCE only) ----- */
+/* ----- single payment screenshot (ADVANCE only), lives inside the shipping form ----- */
 function renderUploadGrid() {
     const grid = document.getElementById('uploadGrid');
     if (!grid) return;

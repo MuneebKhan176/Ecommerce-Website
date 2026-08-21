@@ -49,8 +49,8 @@ router.post('/categories', (req, res) => {
     const gender = req.body.gender;
     const category_name = req.body.category_name?.trim();
 
-    if (!['MEN', 'WOMEN'].includes(gender) || !category_name) {
-        return sendResponse(res, 400, false, 'gender (MEN/WOMEN) and category_name are required');
+    if (!['MEN', 'WOMEN', 'OTHERS'].includes(gender) || !category_name) {
+        return sendResponse(res, 400, false, 'gender (MEN/WOMEN/OTHERS) and category_name are required');
     }
 
     conn.query('SELECT COALESCE(MAX(display_order), 0) AS maxOrder FROM categories', [], (orderErr, orderRows) => {
@@ -78,8 +78,8 @@ router.put('/categories/:id', (req, res) => {
     const gender = req.body.gender;
     const category_name = req.body.category_name?.trim();
 
-    if (!['MEN', 'WOMEN'].includes(gender) || !category_name) {
-        return sendResponse(res, 400, false, 'gender (MEN/WOMEN) and category_name are required');
+    if (!['MEN', 'WOMEN', 'OTHERS'].includes(gender) || !category_name) {
+        return sendResponse(res, 400, false, 'gender (MEN/WOMEN/OTHERS) and category_name are required');
     }
 
     conn.query(
