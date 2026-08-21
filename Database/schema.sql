@@ -1,33 +1,14 @@
 -- ============================================================
--- GITNIFY / FTD E-COMMERCE DATABASE SCHEMA v4
--- Full reset with FK-safe drop and creation order
+-- E-COMMERCE DATABASE SCHEMA v4
+-- FK-safe creation order
 -- ============================================================
-
-SET FOREIGN_KEY_CHECKS = 0;
-
--- ============================================================
--- DROP TABLES
--- Child tables must be dropped before parent tables
--- ============================================================
-
-DROP TABLE IF EXISTS product_reviews;
-DROP TABLE IF EXISTS payments;
-DROP TABLE IF EXISTS order_items;
-DROP TABLE IF EXISTS product_media;
-DROP TABLE IF EXISTS products;
-DROP TABLE IF EXISTS orders;
-DROP TABLE IF EXISTS homepage_sliders;
-DROP TABLE IF EXISTS admins;
-DROP TABLE IF EXISTS categories;
-
-SET FOREIGN_KEY_CHECKS = 1;
 
 
 -- ============================================================
 -- 1. CATEGORIES
 -- ============================================================
 
-CREATE TABLE categories (
+CREATE TABLE IF NOT EXISTS categories (
     category_id INT AUTO_INCREMENT PRIMARY KEY,
 
     gender ENUM('MEN', 'WOMEN', 'OTHERS') NOT NULL,
@@ -40,10 +21,9 @@ CREATE TABLE categories (
 
 -- ============================================================
 -- 2. ADMINS
--- Independent table
 -- ============================================================
 
-CREATE TABLE admins (
+CREATE TABLE IF NOT EXISTS admins (
     admin_id INT AUTO_INCREMENT PRIMARY KEY,
 
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -58,10 +38,9 @@ CREATE TABLE admins (
 
 -- ============================================================
 -- 3. HOMEPAGE SLIDERS
--- Independent table
 -- ============================================================
 
-CREATE TABLE homepage_sliders (
+CREATE TABLE IF NOT EXISTS homepage_sliders (
     slider_id INT AUTO_INCREMENT PRIMARY KEY,
 
     cloud_key VARCHAR(500) NOT NULL,
@@ -81,7 +60,7 @@ CREATE TABLE homepage_sliders (
 -- Depends on: categories
 -- ============================================================
 
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
     product_id INT AUTO_INCREMENT PRIMARY KEY,
 
     category_id INT NOT NULL,
@@ -128,7 +107,7 @@ CREATE TABLE products (
 -- Depends on: products
 -- ============================================================
 
-CREATE TABLE product_media (
+CREATE TABLE IF NOT EXISTS product_media (
     media_id INT AUTO_INCREMENT PRIMARY KEY,
 
     product_id INT NOT NULL,
@@ -150,11 +129,9 @@ CREATE TABLE product_media (
 
 -- ============================================================
 -- 6. ORDERS
--- Independent from products because products are linked
--- through order_items
 -- ============================================================
 
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     order_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     full_name VARCHAR(100) NOT NULL,
@@ -199,7 +176,7 @@ CREATE TABLE orders (
 -- Depends on: orders and products
 -- ============================================================
 
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     item_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     order_id BIGINT NOT NULL,
@@ -227,10 +204,9 @@ CREATE TABLE order_items (
 -- ============================================================
 -- 8. PAYMENTS
 -- Depends on: orders
--- One payment record per order
 -- ============================================================
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
 
     order_id BIGINT NOT NULL UNIQUE,
@@ -259,7 +235,7 @@ CREATE TABLE payments (
 -- Depends on: products
 -- ============================================================
 
-CREATE TABLE product_reviews (
+CREATE TABLE IF NOT EXISTS product_reviews (
     review_id INT AUTO_INCREMENT PRIMARY KEY,
 
     product_id INT NOT NULL,
