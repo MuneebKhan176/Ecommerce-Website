@@ -16,7 +16,7 @@
 // for Cloudflare's management API, not the S3-compatible object storage
 // API this file talks to.
 //
-// Requires: npm install @aws-sdk/client-s3 uuid
+// Requires: npm install @aws-sdk/client-s3
 
 const path = require('path');
 
@@ -29,7 +29,7 @@ const path = require('path');
 require('dotenv').config();
 
 const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
-const { v4: uuidv4 } = require('uuid');
+const { randomUUID } = require('crypto');
 
 const s3 = new S3Client({
     region: 'auto',
@@ -85,7 +85,7 @@ async function uploadImage(buffer, mimetype, originalName, folder = 'products') 
     }
 
     const ext = path.extname(originalName || '') || `.${mimetype.split('/')[1]}`;
-    const key = `${folder}/${uuidv4()}${ext}`;
+    const key = `${folder}/${randomUUID()}${ext}`;
 
     await s3.send(new PutObjectCommand({
         Bucket: BUCKET,
