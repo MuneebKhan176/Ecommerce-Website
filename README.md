@@ -1,7 +1,7 @@
 # Ecommerce-Website
 <div align="center">
 
-# 🛍️ Faisalabad Textile Store
+# 🛍️ Bin-Sarfraz Store
 
 ### A Modern Full-Stack E-Commerce Platform
 
